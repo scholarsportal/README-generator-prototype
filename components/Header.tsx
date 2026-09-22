@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import type { Locale } from '@/lib/i18n'
 import styles from './Header.module.css'
 
 interface HeaderProps {
@@ -8,9 +9,11 @@ interface HeaderProps {
   onCopy: () => void
   onDownload: (ext: 'md' | 'txt') => void
   saveArea?: React.ReactNode
+  locale?: Locale
+  onLocaleChange?: (locale: Locale) => void
 }
 
-export default function Header({ hasReadme, onCopy, onDownload, saveArea }: HeaderProps) {
+export default function Header({ hasReadme, onCopy, onDownload, saveArea, locale = 'en', onLocaleChange }: HeaderProps) {
   const [dark, setDark] = useState<boolean | null>(null)
 
   useEffect(() => {
@@ -57,6 +60,32 @@ export default function Header({ hasReadme, onCopy, onDownload, saveArea }: Head
               download .md
             </button>
           </>
+        )}
+        {onLocaleChange && (
+          // Reuses the theme toggle's styles so it matches without new CSS.
+          // Language names are written in their own language (English /
+          // Français) — the usual convention, so each is readable to the
+          // person looking for it regardless of the current UI language.
+          <div className={styles.themeSegment} role="group" aria-label="Language / Langue">
+            <button
+              className={`${styles.themeBtn} ${locale === 'en' ? styles.themeBtnActive : ''}`}
+              onClick={() => onLocaleChange('en')}
+              title="English"
+              lang="en"
+              aria-pressed={locale === 'en'}
+            >
+              EN
+            </button>
+            <button
+              className={`${styles.themeBtn} ${locale === 'fr' ? styles.themeBtnActive : ''}`}
+              onClick={() => onLocaleChange('fr')}
+              title="Français"
+              lang="fr"
+              aria-pressed={locale === 'fr'}
+            >
+              FR
+            </button>
+          </div>
         )}
         <div className={styles.themeSegment}>
           <button

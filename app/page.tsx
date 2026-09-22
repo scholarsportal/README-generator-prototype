@@ -6,6 +6,7 @@ import type { DatasetMeta, DataFile, Section, Tab, Status, SignedUrls, Generatio
 import { PINK_SECTIONS, DEFAULT_SECTIONS } from '@/lib/types'
 import { fetchVariables, fetchVersions, saveReadme, parseSignedUrls, resolveCallback } from '@/lib/borealis'
 import { generateReadme, isTabular } from '@/lib/template'
+import { normalizeLocale, type Locale } from '@/lib/i18n'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar/Sidebar'
 import Viewer from '@/components/Viewer/Viewer'
@@ -40,6 +41,17 @@ function App() {
   const [tab, setTab]               = useState<Tab>('preview')
   const [status, setStatus]         = useState<Status>({ message: 'loading dataset…', state: 'active' })
   const [launched, setLaunched]     = useState(false)
+  // Starts from the language Borealis launched in ({localeCode} in tool.json);
+  // the header toggle overrides it for this session only. Deliberately not
+  // saved, so every new launch follows Borealis's language again.
+  const [locale, setLocale]         = useState<Locale>(() => normalizeLocale(searchParams.get('locale')))
+
+  // Keep <html lang> in step so screen readers, hyphenation and spellcheck
+  // use the right language.
+  useEffect(() => {
+    document.documentElement.lang = locale
+  }, [locale])
+
   useEffect(() => {
     async function init() {
       const callbackParam = searchParams.get('callback')
@@ -203,7 +215,7 @@ function App() {
   if (!launched && status.state === 'idle') {
     return (
       <div className={styles.app}>
-        <Header hasReadme={false} onCopy={handleCopy} onDownload={handleDownload} />
+        <Header hasReadme={false} onCopy={handleCopy} onDownload={handleDownload} locale={locale} onLocaleChange={setLocale} />
         <div className={styles.notLaunched}>
           <div className={styles.notLaunchedGlyph}>README</div>
           <div className={styles.notLaunchedTitle}>Open from a dataset page</div>
@@ -221,6 +233,8 @@ function App() {
         hasReadme={!!markdown}
         onCopy={handleCopy}
         onDownload={handleDownload}
+        locale={locale}
+        onLocaleChange={setLocale}
         saveArea={markdown ? <SaveArea onSave={handleSave} hasSignedUrl={!!signedUrls?.addFile} existingFiles={files.map((f) => f.name)} /> : undefined}
       />
       <div className={styles.layout}>
