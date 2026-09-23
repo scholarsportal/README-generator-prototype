@@ -74,7 +74,7 @@ export default function Header({ hasReadme, onCopy, onDownload, saveArea, locale
               lang="en"
               aria-pressed={locale === 'en'}
             >
-              EN
+              En
             </button>
             <button
               className={`${styles.themeBtn} ${locale === 'fr' ? styles.themeBtnActive : ''}`}
@@ -83,7 +83,7 @@ export default function Header({ hasReadme, onCopy, onDownload, saveArea, locale
               lang="fr"
               aria-pressed={locale === 'fr'}
             >
-              FR
+              Fr
             </button>
           </div>
         )}
