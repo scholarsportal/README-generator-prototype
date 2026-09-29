@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { DatasetMeta, DataFile, Section, GenerationMode, CustomSection } from '@/lib/types'
 import { SECTION_META, PINK_SECTIONS, GREEN_SECTIONS } from '@/lib/types'
 import { formatBytes, fileExt, buildTree, isTabular } from '@/lib/template'
+import type { SectionBlock } from '@/lib/sections'
 import type { TreeNode } from '@/lib/types'
 import styles from './Sidebar.module.css'
 
@@ -34,6 +35,14 @@ interface SidebarProps {
   onGenerate: () => void
   generating: boolean
   error: string
+  /** Each section's content as it will appear, keyed by section. */
+  sectionBlocks: Partial<Record<Section, SectionBlock>>
+  /** Text the user has typed, keyed by section. Absent = using the dataset's own content. */
+  sectionText: Partial<Record<Section, string>>
+  onSectionTextChange: (s: Section, value: string) => void
+  onSectionReset: (s: Section) => void
+  /** True before anything is generated: the panel is centred and roomier. */
+  wide: boolean
 }
 
 export default function Sidebar({
@@ -45,6 +54,7 @@ export default function Sidebar({
   hasReadme, version, versions, onVersionChange,
   onGenerate, generating,
   error,
+  sectionBlocks, sectionText, onSectionTextChange, onSectionReset, wide,
 }: SidebarProps) {
   const tree = files.length ? buildTree(files) : null
   const canGenerate = !!meta && selectedIds.size > 0 && !generating
@@ -52,7 +62,6 @@ export default function Sidebar({
   const allMinChecked = PINK_SECTIONS.every((s) => sections.includes(s))
   const allEnhChecked = GREEN_SECTIONS.every((s) => sections.includes(s))
 
-  const unrestrictedFiles = files.filter((f) => !f.restricted)
   const tabularFiles = files.filter(isTabular)
   const allFilesChecked = files.length > 0 && files.every((f) => selectedIds.has(f.id))
   const allVarsChecked = tabularFiles.length > 0 && tabularFiles.every((f) => variableIds.has(f.id))
@@ -63,6 +72,16 @@ export default function Sidebar({
   const fileTotal = files.length
   const varCount = variableIds.size
   const varTotal = tabularFiles.length
+
+  // Which section editors are open. Several can be open at once.
+  const [expanded, setExpanded] = useState<Set<Section>>(new Set())
+  function toggleExpanded(s: Section) {
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      next.has(s) ? next.delete(s) : next.add(s)
+      return next
+    })
+  }
 
   function toggleAllVars(checked: boolean) {
     tabularFiles.forEach((f) => onToggleVariable(f.id, checked))
@@ -94,16 +113,37 @@ export default function Sidebar({
     }
   }
 
+  function renderSectionRow(s: Section, opts: { checkbox: boolean; dotColor?: string }) {
+    return (
+      <SectionRow
+        key={s}
+        section={s}
+        label={SECTION_META[s].label}
+        description={SECTION_META[s].description}
+        checkbox={opts.checkbox}
+        dotColor={opts.dotColor}
+        checked={sections.includes(s)}
+        onToggle={() => onToggleSection(s)}
+        block={sectionBlocks[s]}
+        text={sectionText[s]}
+        onTextChange={(v) => onSectionTextChange(s, v)}
+        onReset={() => onSectionReset(s)}
+        open={expanded.has(s)}
+        onToggleOpen={() => toggleExpanded(s)}
+      />
+    )
+  }
+
   return (
-    <aside className={styles.sidebar}>
+    <aside className={`${styles.sidebar} ${wide ? styles.sidebarWide : ''}`}>
       {/* Version change confirmation modal */}
       {pendingVersion && (
         <div className={styles.versionModalOverlay} onClick={() => setPendingVersion(null)}>
           <div className={styles.versionModal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.versionModalTitle}>Change version?</div>
             <p className={styles.versionModalBody}>
-              Your current README will be cleared when you switch versions.
-              Make sure to save or download it first if you need it.
+              Your current README will be cleared, so save or download it first if you need it.
+              Anything you typed into a section is kept, and will still be used for the new version.
             </p>
             <div className={styles.versionModalActions}>
               <button className={styles.btn} onClick={() => setPendingVersion(null)}>cancel</button>
@@ -117,7 +157,7 @@ export default function Sidebar({
           </div>
         </div>
       )}
-      <div className={styles.scroll}>
+      <div className={`${styles.scroll} ${wide ? styles.scrollWide : ''}`}>
 
         {fetching && (
           <div className={styles.fetchingState}>
@@ -265,7 +305,13 @@ export default function Sidebar({
           </div>
         )}
 
-        {mode === 'advanced' && (
+        {meta && (
+          <div className={styles.sectionHint}>
+            Open a section to see and edit what goes into it.
+          </div>
+        )}
+
+        {mode === 'advanced' && meta && (
           <div>
             <div className={styles.tierBlock}>
               <div className={styles.tierLabelRow}>
@@ -278,12 +324,7 @@ export default function Sidebar({
                   all
                 </label>
               </div>
-              {PINK_SECTIONS.map((s) => (
-                <label key={s} className={styles.toggleItem}>
-                  <input type="checkbox" checked={sections.includes(s)} onChange={() => onToggleSection(s)} />
-                  {SECTION_META[s].label}
-                </label>
-              ))}
+              {PINK_SECTIONS.map((s) => renderSectionRow(s, { checkbox: true }))}
             </div>
             <div className={styles.tierBlock}>
               <div className={styles.tierLabelRow}>
@@ -296,12 +337,7 @@ export default function Sidebar({
                   all
                 </label>
               </div>
-              {GREEN_SECTIONS.map((s) => (
-                <label key={s} className={styles.toggleItem}>
-                  <input type="checkbox" checked={sections.includes(s)} onChange={() => onToggleSection(s)} />
-                  {SECTION_META[s].label}
-                </label>
-              ))}
+              {GREEN_SECTIONS.map((s) => renderSectionRow(s, { checkbox: true }))}
             </div>
           </div>
         )}
@@ -349,12 +385,7 @@ export default function Sidebar({
         {mode === 'basic' && meta && (
           <div className={styles.basicSummary}>
             <div className={styles.basicSummaryTitle}>Will include:</div>
-            {PINK_SECTIONS.map((s) => (
-              <div key={s} className={styles.basicSummaryItem}>
-                <span className={styles.basicDot} />
-                {SECTION_META[s].label}
-              </div>
-            ))}
+            {PINK_SECTIONS.map((s) => renderSectionRow(s, { checkbox: false, dotColor: '#ea9999' }))}
           </div>
         )}
 
@@ -370,6 +401,105 @@ export default function Sidebar({
 
       </div>
     </aside>
+  )
+}
+
+// ── One section: checkbox, expander, and its editable content ────────────────
+
+function SectionRow({
+  section, label, description, checkbox, dotColor, checked, onToggle,
+  block, text, onTextChange, onReset, open, onToggleOpen,
+}: {
+  section: Section
+  label: string
+  description: string
+  checkbox: boolean
+  dotColor?: string
+  checked: boolean
+  onToggle: () => void
+  block?: SectionBlock
+  text?: string
+  onTextChange: (v: string) => void
+  onReset: () => void
+  open: boolean
+  onToggleOpen: () => void
+}) {
+  const edited = text !== undefined
+  const editable = block ? block.editable : true
+  // Sections with no dataset metadata start empty, with the guidance as a
+  // grey placeholder; everything else is prefilled with its real content.
+  const defaultValue = block ? (block.placeholder ? '' : block.body.trimEnd()) : ''
+  const value = text !== undefined ? text : defaultValue
+
+  return (
+    <div className={styles.sectionItem}>
+      <div className={styles.sectionRow}>
+        {checkbox ? (
+          <label className={styles.toggleItem}>
+            <input type="checkbox" checked={checked} onChange={onToggle} />
+            {label}
+          </label>
+        ) : (
+          <span className={styles.toggleItem}>
+            <span className={styles.basicDot} style={dotColor ? { background: dotColor } : undefined} />
+            {label}
+          </span>
+        )}
+        {edited && <span className={styles.editedTag}>edited</span>}
+        <button
+          type="button"
+          className={styles.expandBtn}
+          onClick={onToggleOpen}
+          aria-expanded={open}
+          aria-label={open ? `Hide ${label} content` : `Edit ${label} content`}
+          title={description}
+        >
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none"
+            style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform .15s' }}>
+            <path d="M3 2L7 5L3 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </div>
+
+      {open && (
+        <div className={styles.sectionEditor}>
+          {!block && (
+            <div className={styles.sectionNote}>Load a dataset to see this section.</div>
+          )}
+
+          {block && !editable && section === 'variables' && (
+            <div className={styles.sectionNote}>
+              Variable tables are built from the files ticked in column C2 when you generate.
+            </div>
+          )}
+
+          {block && !editable && section !== 'variables' && (
+            <>
+              <div className={styles.sectionNote}>Built from the files you tick above.</div>
+              <pre className={styles.sectionPreview}>{block.body.trimEnd()}</pre>
+            </>
+          )}
+
+          {block && editable && (
+            <>
+              <textarea
+                className={styles.sectionTextarea}
+                value={value}
+                placeholder={block.placeholder}
+                onChange={(e) => onTextChange(e.target.value)}
+                rows={Math.min(12, Math.max(3, value.split('\n').length + 1))}
+              />
+              <div className={styles.sectionEditorFoot}>
+                <span>{edited ? 'Your text is used instead of the dataset content.' : 'Edits replace the dataset content.'}</span>
+                {edited && (
+                  <button type="button" className={styles.resetBtn} onClick={onReset}>reset</button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
 

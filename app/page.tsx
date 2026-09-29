@@ -1,11 +1,12 @@
 'use client'
 import { Suspense } from 'react'
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import type { DatasetMeta, DataFile, Section, Tab, Status, SignedUrls, GenerationMode, CustomSection, VersionEntry } from '@/lib/types'
 import { PINK_SECTIONS, DEFAULT_SECTIONS } from '@/lib/types'
 import { fetchVariables, fetchVersions, saveReadme, parseSignedUrls, resolveCallback } from '@/lib/borealis'
 import { generateReadme, isTabular } from '@/lib/template'
+import { buildSections, type SectionBlock } from '@/lib/sections'
 import { normalizeLocale, type Locale } from '@/lib/i18n'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar/Sidebar'
@@ -41,6 +42,11 @@ function App() {
   const [tab, setTab]               = useState<Tab>('preview')
   const [status, setStatus]         = useState<Status>({ message: 'loading dataset…', state: 'active' })
   const [launched, setLaunched]     = useState(false)
+  // Text the user typed for a section. Only edited sections appear here, so
+  // everything else keeps following the dataset. Deliberately NOT cleared when
+  // the version or language changes — the 'edited' tag and reset link in the
+  // sidebar are what make that visible.
+  const [sectionText, setSectionText] = useState<Partial<Record<Section, string>>>({})
   // Starts from the language Borealis launched in ({localeCode} in tool.json);
   // the header toggle overrides it for this session only. Deliberately not
   // saved, so every new launch follows Borealis's language again.
@@ -86,6 +92,28 @@ function App() {
     }
     init()
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Each section's content as it will appear, for the sidebar editors. The
+  // variable tables need data only fetched at generate time, so they preview
+  // with an empty map and the sidebar shows a note instead.
+  const sectionBlocks = useMemo(() => {
+    if (!meta) return {} as Partial<Record<Section, SectionBlock>>
+    const selected = files.filter((f) => selectedIds.has(f.id))
+    const blocks = buildSections({ meta, selectedFiles: selected, allFiles: files, variableMap: new Map(), locale })
+    return Object.fromEntries(blocks.map((b) => [b.section, b])) as Partial<Record<Section, SectionBlock>>
+  }, [meta, files, selectedIds, locale])
+
+  const handleSectionTextChange = useCallback((s: Section, value: string) => {
+    setSectionText((prev) => ({ ...prev, [s]: value }))
+  }, [])
+
+  const handleSectionReset = useCallback((s: Section) => {
+    setSectionText((prev) => {
+      const next = { ...prev }
+      delete next[s]
+      return next
+    })
   }, [])
 
   // Apply an already-fetched version to the UI. No network call — every version
@@ -189,7 +217,7 @@ function App() {
       variableMap.set(f.id, vars)
     }
     setStatus({ message: 'generating README…', state: 'active' })
-    const md = generateReadme({ meta, selectedFiles, allFiles: files, sections: activeSections, variableMap, customSections: mode === 'advanced' ? customSections : [] })
+    const md = generateReadme({ meta, selectedFiles, allFiles: files, sections: activeSections, variableMap, customSections: mode === 'advanced' ? customSections : [], locale, overrides: sectionText })
     setMarkdown(md)
     setStatus({ message: `README generated (${mode} mode)`, state: 'done' })
     setGenerating(false)
@@ -237,7 +265,7 @@ function App() {
         onLocaleChange={setLocale}
         saveArea={markdown ? <SaveArea onSave={handleSave} hasSignedUrl={!!signedUrls?.addFile} existingFiles={files.map((f) => f.name)} /> : undefined}
       />
-      <div className={styles.layout}>
+      <div className={`${styles.layout} ${markdown ? '' : styles.layoutSetup}`}>
         <Sidebar
           token={token}
           onTokenChange={setToken}
@@ -265,14 +293,20 @@ function App() {
           versions={versions.map((v) => ({ label: v.label, value: v.value }))}
           onVersionChange={handleVersionChange}
           error={fetchError}
+          sectionBlocks={sectionBlocks}
+          sectionText={sectionText}
+          onSectionTextChange={handleSectionTextChange}
+          onSectionReset={handleSectionReset}
+          wide={!markdown}
         />
-        <Viewer
-          markdown={markdown}
-          onChange={setMarkdown}
-          tab={tab}
-          onTabChange={setTab}
-          status={status}
-        />
+        {markdown && (
+          <Viewer
+            markdown={markdown}
+            onChange={setMarkdown}
+            tab={tab}
+            onTabChange={setTab}
+          />
+        )}
       </div>
     </div>
   )

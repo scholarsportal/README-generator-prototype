@@ -15,33 +15,14 @@
   flex-shrink: 0;
 }
 
-.status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  color: var(--hint);
-  flex: 1;
-}
-
-.dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--hint);
-  flex-shrink: 0;
-}
-.dot.active { background: var(--accent); animation: pulse 1.4s ease-in-out infinite; }
-.dot.done   { background: var(--accent); }
-.dot.error  { background: var(--danger); }
-
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-
 .tabs {
   display: flex;
   border: 1px solid var(--border);
   border-radius: 5px;
   overflow: hidden;
+  /* The status block used to hold this over with flex: 1; it is gone, so the
+     tab group pushes itself to the right instead. */
+  margin-left: auto;
 }
 
 .tab {

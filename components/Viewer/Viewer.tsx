@@ -10,20 +10,15 @@ interface ViewerProps {
   onChange: (md: string) => void
   tab: Tab
   onTabChange: (t: Tab) => void
-  status: { message: string; state: 'idle' | 'active' | 'done' | 'error' }
 }
 
-export default function Viewer({ markdown, onChange, tab, onTabChange, status }: ViewerProps) {
+export default function Viewer({ markdown, onChange, tab, onTabChange }: ViewerProps) {
   const html = markdown ? (marked.parse(markdown) as string) : ''
 
   return (
     <div className={styles.wrapper}>
-      {/* Status + tabs toolbar */}
+      {/* Tabs toolbar */}
       <div className={styles.toolbar}>
-        <div className={styles.status}>
-          <span className={`${styles.dot} ${styles[status.state]}`} />
-          <span>{status.message}</span>
-        </div>
         <div className={styles.tabs}>
           <button
             className={`${styles.tab} ${tab === 'preview' ? styles.active : ''}`}
