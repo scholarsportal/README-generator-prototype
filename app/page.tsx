@@ -243,7 +243,7 @@ function App() {
   if (!launched && status.state === 'idle') {
     return (
       <div className={styles.app}>
-        <Header hasReadme={false} onCopy={handleCopy} onDownload={handleDownload} locale={locale} onLocaleChange={setLocale} />
+        <Header locale={locale} onLocaleChange={setLocale} />
         <div className={styles.notLaunched}>
           <div className={styles.notLaunchedGlyph}>README</div>
           <div className={styles.notLaunchedTitle}>Open from a dataset page</div>
@@ -257,14 +257,7 @@ function App() {
   }
   return (
     <div className={styles.app}>
-      <Header
-        hasReadme={!!markdown}
-        onCopy={handleCopy}
-        onDownload={handleDownload}
-        locale={locale}
-        onLocaleChange={setLocale}
-        saveArea={markdown ? <SaveArea onSave={handleSave} hasSignedUrl={!!signedUrls?.addFile} existingFiles={files.map((f) => f.name)} /> : undefined}
-      />
+      <Header locale={locale} onLocaleChange={setLocale} />
       <div className={`${styles.layout} ${markdown ? '' : styles.layoutSetup}`}>
         <Sidebar
           token={token}
@@ -305,6 +298,16 @@ function App() {
             onChange={setMarkdown}
             tab={tab}
             onTabChange={setTab}
+            onCopy={handleCopy}
+            onDownload={handleDownload}
+            title={meta?.title}
+            saveArea={
+              <SaveArea
+                onSave={handleSave}
+                hasSignedUrl={!!signedUrls?.addFile}
+                existingFiles={files.map((f) => f.name)}
+              />
+            }
           />
         )}
       </div>

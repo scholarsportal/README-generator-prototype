@@ -692,3 +692,6 @@
   margin: 0 auto;
   padding: 2rem 1.5rem 3rem;
 }
+
+/* Lock icon matches the "restricted files are unchecked by default" note. */
+.unlockIcon { color: var(--version-banner-color); }

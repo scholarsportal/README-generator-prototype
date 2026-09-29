@@ -13,6 +13,8 @@
   padding: 8px 1.5rem;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  /* Save, export and the view tabs sit together as one group on the right. */
+  justify-content: flex-end;
 }
 
 .tabs {
@@ -20,9 +22,69 @@
   border: 1px solid var(--border);
   border-radius: 5px;
   overflow: hidden;
-  /* The status block used to hold this over with flex: 1; it is gone, so the
-     tab group pushes itself to the right instead. */
-  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* ── export: expands sideways rather than dropping a menu ── */
+.exportBar {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.exportToggle {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  transition: border-color 0.15s, border-radius 0.18s;
+  flex-shrink: 0;
+}
+.exportToggle:hover { border-color: var(--border-mid); }
+.exportToggleOpen {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right-color: transparent;
+}
+
+.exportOptions {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  max-width: 0;
+  opacity: 0;
+  transition: max-width 0.22s ease, opacity 0.18s ease;
+}
+.exportOptionsOpen {
+  max-width: 320px;
+  opacity: 1;
+}
+
+.exportItem {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: none;
+  color: var(--hint);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.12s, background 0.12s;
+}
+.exportItem:hover { color: var(--text); background: var(--surface2); }
+.exportItem:last-child {
+  border-top-right-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
 }
 
 .tab {

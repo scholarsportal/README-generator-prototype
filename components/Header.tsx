@@ -1,19 +1,17 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import type { Locale } from '@/lib/i18n'
 import styles from './Header.module.css'
 
 interface HeaderProps {
-  hasReadme: boolean
-  onCopy: () => void
-  onDownload: (ext: 'md' | 'txt') => void
-  saveArea?: React.ReactNode
   locale?: Locale
   onLocaleChange?: (locale: Locale) => void
 }
 
-export default function Header({ hasReadme, onCopy, onDownload, saveArea, locale = 'en', onLocaleChange }: HeaderProps) {
+// Save and export live in the Viewer toolbar, beside the view tabs, so every
+// control that acts on the README sits on one row.
+export default function Header({ locale = 'en', onLocaleChange }: HeaderProps) {
   const [dark, setDark] = useState<boolean | null>(null)
 
   useEffect(() => {
@@ -42,16 +40,11 @@ export default function Header({ hasReadme, onCopy, onDownload, saveArea, locale
   return (
     <header className={styles.header}>
       <div className={styles.wordmark}>
-        Borealis README<em></em> Generator
+        Borealis README<em>.</em>gen
       </div>
+      <div className={styles.badge}>external tool</div>
       <InfoTooltip />
       <div className={styles.actions}>
-        {hasReadme && (
-          <>
-            {saveArea}
-            <ExportMenu onCopy={onCopy} onDownload={onDownload} />
-          </>
-        )}
         {onLocaleChange && (
           <div className={styles.themeSegment} role="group" aria-label="Language / Langue">
             <button
@@ -61,7 +54,7 @@ export default function Header({ hasReadme, onCopy, onDownload, saveArea, locale
               lang="en"
               aria-pressed={locale === 'en'}
             >
-              English
+              EN
             </button>
             <button
               className={`${styles.themeBtn} ${locale === 'fr' ? styles.themeBtnActive : ''}`}
@@ -70,7 +63,7 @@ export default function Header({ hasReadme, onCopy, onDownload, saveArea, locale
               lang="fr"
               aria-pressed={locale === 'fr'}
             >
-              Français
+              FR
             </button>
           </div>
         )}
@@ -92,67 +85,6 @@ export default function Header({ hasReadme, onCopy, onDownload, saveArea, locale
         </div>
       </div>
     </header>
-  )
-}
-
-// ── Export dropdown ───────────────────────────────────────────────────────────
-// Copy and the two downloads, which were three separate buttons. Saving to the
-// dataset stays its own button: that writes to Borealis, this takes a copy away.
-
-function ExportMenu({ onCopy, onDownload }: { onCopy: () => void; onDownload: (ext: 'md' | 'txt') => void }) {
-  const [open, setOpen] = useState(false)
-  const wrapRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    function onPointerDown(e: MouseEvent) {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
-    }
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('mousedown', onPointerDown)
-    document.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.removeEventListener('mousedown', onPointerDown)
-      document.removeEventListener('keydown', onKeyDown)
-    }
-  }, [open])
-
-  function choose(action: () => void) {
-    action()
-    setOpen(false)
-  }
-
-  return (
-    <div className={styles.exportWrap} ref={wrapRef}>
-      <button
-        className={`${styles.btn} ${styles.btnSm} ${styles.exportBtn}`}
-        onClick={() => setOpen((o) => !o)}
-        aria-haspopup="menu"
-        aria-expanded={open}
-      >
-        export
-        <svg width="8" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true"
-          style={{ marginLeft: 6, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>
-          <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
-
-      {open && (
-        <div className={styles.exportMenu} role="menu">
-          <button className={styles.exportItem} role="menuitem" onClick={() => choose(onCopy)}>
-            copy markdown
-          </button>
-          <button className={styles.exportItem} role="menuitem" onClick={() => choose(() => onDownload('md'))}>
-            download .md
-          </button>
-          <button className={styles.exportItem} role="menuitem" onClick={() => choose(() => onDownload('txt'))}>
-            download .txt
-          </button>
-        </div>
-      )}
-    </div>
   )
 }
 
