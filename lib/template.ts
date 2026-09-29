@@ -1,10 +1,13 @@
 import type { DatasetMeta, DataFile, Variable, Section } from './types'
 import { t as translate, type Locale } from './i18n'
 import { buildSections, titleBlock, type SectionBlock } from './sections'
+import { renderSection } from './plaintext'
 
 // Re-exported so existing imports from '@/lib/template' keep working.
 export { TABULAR_TYPES, isTabular, formatBytes, fileExt, buildTree } from './format'
 export { buildSections, titleBlock } from './sections'
+export { renderSection, formatHint } from './plaintext'
+export type { SectionKind } from './plaintext'
 export type { SectionBlock } from './sections'
 
 const FOOTER_URL = 'https://github.com/scholarsportal/README-generator'
@@ -35,15 +38,19 @@ export function generateReadme(opts: GenerateOptions): string {
   const blocks: SectionBlock[] = buildSections({ meta: m, selectedFiles, allFiles, variableMap, locale })
   const parts: string[] = []
 
-  // Title: always present, and editable like any other section.
+  // Title: always present, and editable like any other section. What the user
+  // typed is plain text, so it goes through the converter for its shape.
   const title = titleBlock(m)
-  parts.push((overrides.title || '').trim() ? `${overrides.title!.trim()}\n` : title.body)
+  const typedTitle = (overrides.title || '').trim()
+  parts.push(typedTitle ? renderSection(title.kind, typedTitle, locale) : title.body)
 
   for (const block of blocks) {
     if (!sections.includes(block.section)) continue
 
+    // Editors hold plain text; renderSection turns it back into markdown using
+    // the shape declared for that section.
     const typed = block.editable ? (overrides[block.section] || '').trim() : ''
-    const body = typed ? `${typed}\n` : block.body
+    const body = typed ? renderSection(block.kind, typed, locale) : block.body
 
     // An empty body means the dataset has nothing for this section (no authors,
     // no version) and the user typed nothing either, so it is left out.

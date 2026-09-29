@@ -1,6 +1,7 @@
 import type { DatasetMeta, DataFile, Variable, Section } from './types'
 import { t as translate, tn as translateN, type Locale } from './i18n'
 import { formatBytes, fileExt, isTabular } from './format'
+import type { SectionKind } from './plaintext'
 
 export interface SectionBlock {
   section: Section
@@ -16,6 +17,13 @@ export interface SectionBlock {
   placeholder: string
   /** False for the generated tables, which are shown read-only. */
   editable: boolean
+  /**
+   * The same content as plain text — what the editor shows. Converted back to
+   * markdown at generation by renderSection(), using `kind`.
+   */
+  plain: string
+  /** The shape of this section's plain text, and how it converts back. */
+  kind: SectionKind
 }
 
 export interface BuildOptions {
@@ -60,14 +68,16 @@ export function buildSections(opts: BuildOptions): SectionBlock[] {
   const add = (
     section: Section,
     lines: string[],
-    { placeholder = '', editable = true }: { placeholder?: string; editable?: boolean } = {}
+    opts: { placeholder?: string; editable?: boolean; plain?: string; kind?: SectionKind } = {}
   ) => {
     out.push({
       section,
       heading: `## ${t(`heading.${section}`)}\n`,
       body: lines.join('\n'),
-      placeholder,
-      editable,
+      placeholder: opts.placeholder ?? '',
+      editable: opts.editable ?? true,
+      plain: opts.plain ?? '',
+      kind: opts.kind ?? 'prose',
     })
   }
 
@@ -80,11 +90,21 @@ export function buildSections(opts: BuildOptions): SectionBlock[] {
       m.keywords && `${label('keywords')} ${m.keywords}`,
     ].filter(Boolean) as string[]
     if (bits.length) lines.push(bits.join('  \n') + '\n')
-    add('description', lines)
+    // Label lines stay on consecutive lines so they render as one block, the
+    // way the generated version does.
+    const plainLabels = [
+      m.subject  && `${t('readme.label.subject')} ${m.subject}`,
+      m.keywords && `${t('readme.label.keywords')} ${m.keywords}`,
+    ].filter(Boolean).join('\n')
+    const plainDesc = [m.description, plainLabels].filter(Boolean).join('\n\n')
+    add('description', lines, { kind: 'prose', plain: plainDesc })
   }
 
   // ── Authors ─────────────────────────────────────────────────────────────────
-  add('authors', m.authors ? [m.authors.split(';').map((a) => `- ${a.trim()}`).join('\n') + '\n'] : [])
+  add('authors', m.authors ? [m.authors.split(';').map((a) => `- ${a.trim()}`).join('\n') + '\n'] : [], {
+    kind: 'list',
+    plain: m.authors ? m.authors.split(';').map((a) => a.trim()).filter(Boolean).join('\n') : '',
+  })
 
   // ── Contact ─────────────────────────────────────────────────────────────────
   {
@@ -98,29 +118,49 @@ export function buildSections(opts: BuildOptions): SectionBlock[] {
     } else {
       lines.push(`${t('readme.contact.fallback', { url: m.doi })}\n`)
     }
-    add('contact', lines)
+    add('contact', lines, {
+      kind: 'contact',
+      plain: m.contact
+        .map((c) => [c.name, c.affiliation, c.email].filter(Boolean).join(' — '))
+        .join('\n'),
+      placeholder: m.contact.length ? '' : 'Smith, Jean — University of Toronto — jean.smith@utoronto.ca',
+    })
   }
 
   // ── DOI ─────────────────────────────────────────────────────────────────────
-  add('doi', [`${label('doi')} [${m.doi}](${m.doi})  \n${label('publisher')} ${m.publisher}\n`])
+  add('doi', [`${label('doi')} [${m.doi}](${m.doi})  \n${label('publisher')} ${m.publisher}\n`], {
+    kind: 'prose',
+    plain: `${t('readme.label.doi')} ${m.doi}\n${t('readme.label.publisher')} ${m.publisher}`,
+  })
 
   // ── License ─────────────────────────────────────────────────────────────────
   {
     const lines = [`${t('readme.license.body')}\n`]
     if (m.license) lines.push(`${label('license')} ${m.license}\n`)
-    add('license', lines)
+    add('license', lines, {
+      kind: 'prose',
+      plain: [t('readme.license.body'), m.license && `${t('readme.label.license')} ${m.license}`].filter(Boolean).join('\n\n'),
+    })
   }
 
   // ── Version ─────────────────────────────────────────────────────────────────
   add('version', m.version ? [
     `${label('current_version')} ${m.version}  \n${label('year')} ${m.year || t('readme.version.not_specified')}\n`,
     `_${t('readme.version.history_note')}_\n`,
-  ] : [])
+  ] : [], {
+    kind: 'prose',
+    plain: m.version
+      ? `${t('readme.label.current_version')} ${m.version}\n${t('readme.label.year')} ${m.year || t('readme.version.not_specified')}\n\n${t('readme.version.history_note')}`
+      : '',
+  })
 
   // ── Citation ────────────────────────────────────────────────────────────────
   {
     const authors = m.authors ? m.authors.split(';').map((a) => a.trim()).join(', ') : t('readme.citation.no_authors')
-    add('citation', [`> ${authors} (${m.year || t('readme.citation.no_date')}). *${m.title}*. ${m.publisher}. ${m.doi}\n`])
+    add('citation', [`> ${authors} (${m.year || t('readme.citation.no_date')}). *${m.title}*. ${m.publisher}. ${m.doi}\n`], {
+      kind: 'quote',
+      plain: `${authors} (${m.year || t('readme.citation.no_date')}). ${m.title}. ${m.publisher}. ${m.doi}`,
+    })
   }
 
   // ── Related publications ────────────────────────────────────────────────────
@@ -131,10 +171,16 @@ export function buildSections(opts: BuildOptions): SectionBlock[] {
         if (p.citation) lines.push(`- ${p.citation}${p.url ? `  \n  ${t('readme.label.url')} ${p.url}` : ''}`)
       })
       lines.push('')
-      add('related_publications', lines)
+      add('related_publications', lines, {
+        kind: 'publications',
+        plain: m.relatedPublications
+          .filter((p) => p.citation || p.url)
+          .map((p) => [p.citation, p.url].filter(Boolean).join(' — '))
+          .join('\n'),
+      })
     } else {
       const prompt = t('readme.placeholder.related_publications')
-      add('related_publications', [PLACEHOLDER(prompt) + '\n'], { placeholder: prompt })
+      add('related_publications', [PLACEHOLDER(prompt) + '\n'], { placeholder: prompt, kind: 'publications' })
     }
   }
 
@@ -144,23 +190,26 @@ export function buildSections(opts: BuildOptions): SectionBlock[] {
     if (m.software.length) {
       m.software.forEach((s) => lines.push(`- **${s.name}**${s.version ? ` v${s.version}` : ''}`))
       lines.push('')
-      add('software', lines)
+      add('software', lines, {
+        kind: 'listSoftware',
+        plain: m.software.map((sw) => [sw.name, sw.version].filter(Boolean).join(' ')).join('\n'),
+      })
     } else {
       const prompt = t('readme.placeholder.software')
-      add('software', [PLACEHOLDER(prompt) + '\n'], { placeholder: prompt })
+      add('software', [PLACEHOLDER(prompt) + '\n'], { placeholder: prompt, kind: 'listSoftware' })
     }
   }
 
   // ── Methodology (always a prompt) ───────────────────────────────────────────
   {
     const prompt = t('readme.placeholder.methodology')
-    add('methodology', [PLACEHOLDER(prompt) + '\n'], { placeholder: prompt })
+    add('methodology', [PLACEHOLDER(prompt) + '\n'], { placeholder: prompt, kind: 'prose' })
   }
 
   // ── Data collection (always a prompt) ───────────────────────────────────────
   {
     const prompt = t('readme.placeholder.data_collection')
-    add('data_collection', [PLACEHOLDER(prompt) + '\n'], { placeholder: prompt })
+    add('data_collection', [PLACEHOLDER(prompt) + '\n'], { placeholder: prompt, kind: 'prose' })
   }
 
   // ── Date of collection ──────────────────────────────────────────────────────
@@ -169,10 +218,13 @@ export function buildSections(opts: BuildOptions): SectionBlock[] {
     if (m.dateOfCollection.length) {
       m.dateOfCollection.forEach((d) => { if (d.start || d.end) lines.push(`- ${range(d.start, d.end)}`) })
       lines.push('')
-      add('date_of_collection', lines)
+      add('date_of_collection', lines, {
+        kind: 'list',
+        plain: m.dateOfCollection.filter((d) => d.start || d.end).map((d) => range(d.start, d.end)).join('\n'),
+      })
     } else {
       const prompt = t('readme.placeholder.date_of_collection')
-      add('date_of_collection', [PLACEHOLDER(prompt) + '\n'], { placeholder: prompt })
+      add('date_of_collection', [PLACEHOLDER(prompt) + '\n'], { placeholder: prompt, kind: 'list' })
     }
   }
 
@@ -182,10 +234,13 @@ export function buildSections(opts: BuildOptions): SectionBlock[] {
     if (m.timePeriod.length) {
       m.timePeriod.forEach((tp) => { if (tp.start || tp.end) lines.push(`- ${range(tp.start, tp.end)}`) })
       lines.push('')
-      add('time_period', lines)
+      add('time_period', lines, {
+        kind: 'list',
+        plain: m.timePeriod.filter((tp) => tp.start || tp.end).map((tp) => range(tp.start, tp.end)).join('\n'),
+      })
     } else {
       const prompt = t('readme.placeholder.time_period')
-      add('time_period', [PLACEHOLDER(prompt) + '\n'], { placeholder: prompt })
+      add('time_period', [PLACEHOLDER(prompt) + '\n'], { placeholder: prompt, kind: 'list' })
     }
   }
 
@@ -198,10 +253,16 @@ export function buildSections(opts: BuildOptions): SectionBlock[] {
         if (loc) lines.push(`- ${loc}`)
       })
       lines.push('')
-      add('geographic_coverage', lines)
+      add('geographic_coverage', lines, {
+        kind: 'list',
+        plain: m.geographicCoverage
+          .map((g) => [g.city, g.state, g.country, g.other].filter(Boolean).join(', '))
+          .filter(Boolean)
+          .join('\n'),
+      })
     } else {
       const prompt = t('readme.placeholder.geographic_coverage')
-      add('geographic_coverage', [PLACEHOLDER(prompt) + '\n'], { placeholder: prompt })
+      add('geographic_coverage', [PLACEHOLDER(prompt) + '\n'], { placeholder: prompt, kind: 'list' })
     }
   }
 
@@ -211,10 +272,13 @@ export function buildSections(opts: BuildOptions): SectionBlock[] {
     if (m.contributors.length) {
       m.contributors.forEach((c) => lines.push(`- **${c.name}**${c.type ? ` (${c.type})` : ''}`))
       lines.push('')
-      add('contributors', lines)
+      add('contributors', lines, {
+        kind: 'listName',
+        plain: m.contributors.map((c) => (c.type ? `${c.name} (${c.type})` : c.name)).join('\n'),
+      })
     } else {
       const prompt = t('readme.placeholder.contributors')
-      add('contributors', [PLACEHOLDER(prompt) + '\n'], { placeholder: prompt })
+      add('contributors', [PLACEHOLDER(prompt) + '\n'], { placeholder: prompt, kind: 'listName' })
     }
   }
 
@@ -227,10 +291,15 @@ export function buildSections(opts: BuildOptions): SectionBlock[] {
         lines.push(`- ${line}`)
       })
       lines.push('')
-      add('funding', lines)
+      add('funding', lines, {
+        kind: 'list',
+        plain: m.funding
+          .map((f) => [f.agency, f.grant ? t('readme.funding.grant', { grant: f.grant }) : ''].filter(Boolean).join(' — '))
+          .join('\n'),
+      })
     } else {
       const prompt = t('readme.placeholder.funding')
-      add('funding', [PLACEHOLDER(prompt) + '\n'], { placeholder: prompt })
+      add('funding', [PLACEHOLDER(prompt) + '\n'], { placeholder: prompt, kind: 'list' })
     }
   }
 
@@ -240,10 +309,10 @@ export function buildSections(opts: BuildOptions): SectionBlock[] {
     if (m.dataSources.length) {
       m.dataSources.forEach((s) => lines.push(`- ${s}`))
       lines.push('')
-      add('data_sources', lines)
+      add('data_sources', lines, { kind: 'list', plain: m.dataSources.filter(Boolean).join('\n') })
     } else {
       const prompt = t('readme.placeholder.data_sources')
-      add('data_sources', [PLACEHOLDER(prompt) + '\n'], { placeholder: prompt })
+      add('data_sources', [PLACEHOLDER(prompt) + '\n'], { placeholder: prompt, kind: 'list' })
     }
   }
 
@@ -259,7 +328,7 @@ export function buildSections(opts: BuildOptions): SectionBlock[] {
       lines.push(`| \`${f.name}\` | ${f.contentType || fileExt(f.name)} | ${formatBytes(f.size, locale) || '—'} | ${f.description || '—'} |`)
     }
     lines.push('')
-    add('files', lines, { editable: false })
+    add('files', lines, { editable: false, kind: 'table' })
   }
 
   // ── Variables (generated tables, read-only) ─────────────────────────────────
@@ -284,13 +353,13 @@ export function buildSections(opts: BuildOptions): SectionBlock[] {
     } else {
       lines.push(`_${t('readme.variables.none')}_\n`)
     }
-    add('variables', lines, { editable: false })
+    add('variables', lines, { editable: false, kind: 'table' })
   }
 
   // ── Abbreviations (always a prompt) ─────────────────────────────────────────
   {
     const prompt = t('readme.placeholder.abbreviations')
-    add('abbreviations', [PLACEHOLDER(prompt) + '\n'], { placeholder: prompt })
+    add('abbreviations', [PLACEHOLDER(prompt) + '\n'], { placeholder: prompt, kind: 'prose' })
   }
 
   return out
@@ -298,5 +367,8 @@ export function buildSections(opts: BuildOptions): SectionBlock[] {
 
 /** The `# Title` line. Separate because it carries no `##` heading. */
 export function titleBlock(meta: DatasetMeta): SectionBlock {
-  return { section: 'title', heading: '', body: `# ${meta.title}\n`, placeholder: '', editable: true }
+  return {
+    section: 'title', heading: '', body: `# ${meta.title}\n`,
+    placeholder: '', editable: true, plain: meta.title, kind: 'title',
+  }
 }

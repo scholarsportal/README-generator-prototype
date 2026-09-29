@@ -5,6 +5,7 @@ import type { DatasetMeta, DataFile, Section, GenerationMode, CustomSection } fr
 import { SECTION_META, PINK_SECTIONS, GREEN_SECTIONS } from '@/lib/types'
 import { formatBytes, fileExt, buildTree, isTabular } from '@/lib/template'
 import type { SectionBlock } from '@/lib/sections'
+import { formatHint } from '@/lib/plaintext'
 import type { TreeNode } from '@/lib/types'
 import styles from './Sidebar.module.css'
 
@@ -426,10 +427,12 @@ function SectionRow({
 }) {
   const edited = text !== undefined
   const editable = block ? block.editable : true
-  // Sections with no dataset metadata start empty, with the guidance as a
-  // grey placeholder; everything else is prefilled with its real content.
-  const defaultValue = block ? (block.placeholder ? '' : block.body.trimEnd()) : ''
+  // The box holds plain text, not markdown: it is converted back at generation
+  // according to the section's shape. Sections with no dataset metadata start
+  // empty with the guidance as a grey placeholder.
+  const defaultValue = block ? (block.placeholder ? '' : block.plain) : ''
   const value = text !== undefined ? text : defaultValue
+  const hint = block ? formatHint(block.kind) : ''
 
   return (
     <div className={styles.sectionItem}>
@@ -490,7 +493,7 @@ function SectionRow({
                 rows={Math.min(12, Math.max(3, value.split('\n').length + 1))}
               />
               <div className={styles.sectionEditorFoot}>
-                <span>{edited ? 'Your text is used instead of the dataset content.' : 'Edits replace the dataset content.'}</span>
+                <span>{hint}</span>
                 {edited && (
                   <button type="button" className={styles.resetBtn} onClick={onReset}>reset</button>
                 )}
