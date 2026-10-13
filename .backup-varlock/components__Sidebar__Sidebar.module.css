@@ -1,0 +1,962 @@
+.sidebar {
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+}
+
+.scroll {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--hint);
+  margin-bottom: 4px;
+  display: block;
+}
+
+.btn {
+  font-family: var(--mono);
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: var(--radius);
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn:hover { border-color: var(--border-mid); }
+.btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: 0.35; cursor: default; transform: none; }
+.btnSm { padding: 4px 10px; font-size: 11px; }
+.btnFull { width: 100%; text-align: center; }
+.btnGenerate { width: 100%; text-align: center; padding: 14px; font-size: 13px; letter-spacing: 0.02em; }
+.btnAccent {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 500;
+}
+.btnAccent:hover { background: var(--accent-mid); border-color: var(--accent-mid); }
+
+.error {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius);
+  padding: 0.625rem 0.875rem;
+  font-size: 12px;
+  color: var(--danger);
+  line-height: 1.5;
+}
+
+.metaCard {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 0.875rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.metaRow { display: flex; gap: 0.75rem; }
+.metaKey {
+  font-size: 11px;
+  color: var(--hint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  width: 66px;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+.metaVal {
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.5;
+  word-break: break-word;
+  flex: 1;
+}
+
+/* ── file tree ── */
+.fileListLegend {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.legendLine {
+  font-size: 10px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1.4;
+}
+
+.legendNum {
+  font-size: 10px;
+  color: var(--text);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.legendCount {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--hint);
+  font-weight: 500;
+  background: var(--accent-bg);
+  color: var(--accent);
+  padding: 1px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.legendRestricted {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--version-banner-color);
+  margin-top: 2px;
+}
+
+.fileTreeWrap {
+  height: 330px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 4px 6px;
+}
+
+.fileTree {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+/* Shared row */
+.fileRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 5px;
+  background: var(--surface);
+  border: 1px solid transparent;
+  transition: border-color 0.12s;
+  user-select: none;
+  position: relative;
+}
+.fileRow:hover { border-color: var(--border); }
+
+/* Select-all row */
+.fileRowSelectAll {
+  background: transparent;
+  border-color: transparent !important;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 0;
+  margin-bottom: 2px;
+}
+.fileRowSelectAll:hover {
+  border-color: transparent !important;
+  border-bottom-color: var(--border) !important;
+}
+
+.selectAllLabel {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--hint);
+  flex-shrink: 0;
+}
+
+/* Checkbox column with badge stacked above */
+.cbColHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.cbColHeader input[type='checkbox'] {
+  width: 13px;
+  height: 13px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.cbBadge {
+  font-size: 8px;
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+  user-select: none;
+  letter-spacing: 0.02em;
+}
+
+/* Regular checkbox column */
+.cbCol {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.cbCol input[type='checkbox'] {
+  width: 13px;
+  height: 13px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.cbPlaceholder {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+/* Lock column */
+.lockCol {
+  width: 14px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.unlockIcon {
+  display: flex;
+  align-items: center;
+  color: var(--hint);
+  cursor: default;
+}
+
+.restrictedTip {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  right: 0;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 3px 8px;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.extBadge {
+  font-size: 10px;
+  font-weight: 500;
+  background: var(--accent-bg);
+  color: var(--accent);
+  padding: 1px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  min-width: 34px;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+.fileName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.fileNameCol { flex: 1; }
+.fileSizeCol { font-size: 11px; color: var(--hint); flex-shrink: 0; }
+.fileSize { font-size: 11px; color: var(--hint); flex-shrink: 0; }
+
+.folderName { font-size: 12px; color: #ea9999; font-weight: 500; }
+
+.folderToggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  color: var(--hint);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.folderToggle:hover { color: var(--muted); }
+
+/* ── section toggles ── */
+.toggleItem {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 3px 0;
+  user-select: none;
+}
+.toggleItem input[type='checkbox'] { width: 13px; height: 13px; accent-color: var(--accent); cursor: pointer; }
+
+.divider { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+
+/* ── generation mode toggle ── */
+.modeToggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.modeBtn {
+  font-family: var(--mono);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+}
+.modeBtn:hover { border-color: var(--border-mid); }
+.modeBtnActive { background: var(--accent-bg); border-color: var(--accent); }
+.modeBtnTitle { font-size: 12px; font-weight: 500; color: var(--text); }
+.modeBtnSub { font-size: 10px; color: var(--hint); line-height: 1.3; }
+
+/* ── tier blocks ── */
+.tierBlock { margin-bottom: 0.75rem; }
+
+.tierLabelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.tierLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--hint);
+}
+
+.tierDot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+.selectAllCheck {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--hint);
+  cursor: pointer;
+  user-select: none;
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+}
+.selectAllCheck input[type='checkbox'] { width: 12px; height: 12px; accent-color: var(--accent); cursor: pointer; }
+
+/* ── basic summary ── */
+.basicSummary {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.basicSummaryTitle {
+  font-size: 11px;
+  color: var(--hint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+}
+
+.basicSummaryItem {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.basicDot { width: 6px; height: 6px; border-radius: 50%; background: #ea9999; flex-shrink: 0; }
+
+/* ── custom sections ── */
+.customCard {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.customCardHeader { display: flex; align-items: center; gap: 6px; }
+
+.customTitleInput {
+  font-family: var(--mono);
+  font-size: 12px;
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px 8px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.customTitleInput:focus { border-color: var(--accent); }
+
+.customContentInput {
+  font-family: var(--mono);
+  font-size: 12px;
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  color: var(--text);
+  outline: none;
+  resize: vertical;
+  line-height: 1.5;
+  transition: border-color 0.15s;
+}
+.customContentInput:focus { border-color: var(--accent); }
+
+.removeBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--hint);
+  padding: 4px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+.removeBtn:hover { color: var(--danger); }
+
+/* ── version select ── */
+.versionSelect {
+  font-family: var(--mono);
+  font-size: 12px;
+  width: fit-content;
+  min-width: 80px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 10px;
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23a09a92' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+.versionSelect:focus { border-color: var(--accent); }
+
+/* ── version banner ── */
+.versionBanner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--version-banner-color);
+  background: var(--version-banner-bg);
+  border: 1px solid var(--version-banner-border);
+  border-radius: var(--radius);
+  padding: 6px 10px;
+  line-height: 1.4;
+}
+
+/* ── version change modal ── */
+.versionModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.versionModal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  max-width: 360px;
+  width: calc(100vw - 2rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+}
+
+.versionModalTitle {
+  font-family: var(--serif);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.versionModalBody {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.versionModalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ── fetching state ── */
+.fetchingState {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 8px 0;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── expandable section rows ── */
+.sectionHint {
+  font-size: 11px;
+  color: var(--hint);
+  line-height: 1.5;
+  margin-top: -4px;
+}
+
+.sectionItem {
+  border-bottom: 1px solid transparent;
+}
+
+.sectionRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sectionRow .toggleItem { flex: 1; min-width: 0; }
+
+.expandBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--hint);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  border-radius: 3px;
+}
+.expandBtn:hover { color: var(--text); background: var(--surface2); }
+
+.editedTag {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  background: var(--accent-bg);
+  padding: 1px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.sectionEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px 0 10px 20px;
+}
+
+.sectionTextarea {
+  font-family: var(--mono);
+  font-size: 12px;
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 7px 9px;
+  color: var(--text);
+  outline: none;
+  resize: vertical;
+  line-height: 1.6;
+  transition: border-color 0.15s;
+}
+.sectionTextarea:focus { border-color: var(--accent); }
+.sectionTextarea::placeholder { color: var(--hint); }
+
+.sectionPreview {
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 7px 9px;
+  margin: 0;
+  max-height: 180px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.sectionNote {
+  font-size: 11px;
+  color: var(--hint);
+  line-height: 1.5;
+}
+
+.sectionEditorFoot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--hint);
+}
+
+.resetBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  cursor: pointer;
+  text-decoration: underline;
+  flex-shrink: 0;
+}
+.resetBtn:hover { color: var(--text); }
+
+/* ── wide setup state: centred column before anything is generated ── */
+.sidebarWide {
+  border-right: none;
+}
+
+.scrollWide {
+  max-width: 760px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+}
+
+/* Lock icon matches the "restricted files are unchecked by default" note. */
+.unlockIcon { color: var(--version-banner-color); }
+
+/* ── table grid editor ── */
+.tableEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tableBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tableTitle {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.tableScroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.grid {
+  border-collapse: collapse;
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.gridTh,
+.gridThExtra {
+  text-align: left;
+  font-weight: 500;
+  color: var(--hint);
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  padding: 4px 6px;
+  white-space: nowrap;
+}
+.gridThExtra { background: var(--accent-bg); color: var(--accent); }
+
+.gridThInner {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.gridColInput {
+  font-family: var(--mono);
+  font-size: 11px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: inherit;
+  padding: 1px 3px;
+  width: 92px;
+  outline: none;
+}
+.gridColInput:focus { border-color: var(--accent); background: var(--surface); }
+
+.gridColRemove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.6;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.gridColRemove:hover { opacity: 1; }
+
+.gridTd {
+  border-bottom: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+  padding: 0;
+}
+.gridTd:first-child { border-left: none; }
+
+.gridCell {
+  font-family: var(--mono);
+  font-size: 11px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  padding: 4px 6px;
+  width: 100%;
+  min-width: 90px;
+}
+.gridCell:focus { background: var(--surface2); box-shadow: inset 0 0 0 1px var(--accent); }
+
+.tableFoot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.addColBtn {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 3px 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.addColBtn:hover { border-color: var(--border-mid); color: var(--text); }
+
+.addColRow { display: flex; align-items: center; }
+
+.tableHint {
+  font-size: 10px;
+  color: var(--hint);
+  line-height: 1.4;
+}
+
+
+/* ── expand / collapse all ── */
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.expandControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.expandAllBtn {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--muted);
+  cursor: pointer;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+.expandAllBtn:hover:not(:disabled) { color: var(--text); }
+.expandAllBtn:disabled { color: var(--hint); opacity: 0.45; cursor: default; text-decoration: none; }
+
+.basicSummaryHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.basicSummaryHead .basicSummaryTitle { margin-bottom: 0; }
+
+/* ── + button beside the new-column input ── */
+.addColConfirm {
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1;
+  padding: 3px 8px;
+  margin-left: 4px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.addColConfirm:hover { border-color: var(--accent); color: var(--accent); }
+
+
+/* x to the right of the header cell */
+.gridThInner {
+  width: 100%;
+  gap: 6px;
+}
+/* The fixed width was what stranded the x mid-cell; let the name fill instead. */
+.gridThExtra .gridColInput {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 56px;
+}
+.gridColRemove {
+  margin-left: auto;
+}
+
+
+/* ── restricted files ── */
+/* Same purple as the "restricted files are unchecked by default" note, so the
+   legend and the rows it describes read as one thing. */
+.fileNameRestricted {
+  color: var(--version-banner-color);
+}
+
+.fileRowRestricted {
+  background: var(--version-banner-bg);
+}
+.fileRowRestricted:hover {
+  border-color: var(--version-banner-border);
+}
+
+/* The icon is 11px; a touch more weight keeps it visible against the tint. */
+.fileRowRestricted .unlockIcon {
+  color: var(--version-banner-color);
+  opacity: 1;
+}
+
+
+/* ── tree structure ── */
+/* Scoped to the tree so the pink stays on the tier dots, which mean something
+   else entirely. The dark value is lifted for contrast on the dark ground. */
+.fileTree {
+  --folder: #2f6fb5;
+  --rail: var(--border);
+  /* was 1px: a gap breaks the rails into dashes */
+  gap: 0;
+}
+:global(.dark) .fileTree {
+  --folder: #7fb3e8;
+}
+
+.rail {
+  width: 16px;
+  flex-shrink: 0;
+  align-self: stretch;
+  border-left: 1px solid var(--rail);
+}
+
+/* A folder row has a chevron and a file row does not; this keeps their names
+   on the same left edge. */
+.chevSpacer {
+  width: 16px;
+  flex-shrink: 0;
+}
+
+.folderName {
+  color: var(--folder);
+}
+
+
+/* ── folder rows ── */
+/* Same treatment the restricted rows get, in the folder blue, so a folder reads
+   as a band rather than one coloured word. */
+.fileTree {
+  --folder-bg: rgba(47, 111, 181, 0.09);
+}
+:global(.dark) .fileTree {
+  --folder-bg: rgba(127, 179, 232, 0.13);
+}
+
+.folderRow {
+  background: var(--folder-bg);
+}
+.folderRow:hover {
+  border-color: var(--folder);
+}

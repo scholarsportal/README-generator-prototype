@@ -7,6 +7,10 @@ interface SaveAreaProps {
   onSave: (token: string, filename: string) => Promise<void>
   hasSignedUrl: boolean
   existingFiles?: string[]
+  /** Static demo build: there is no repository to write to, so the control is
+   *  shown disabled rather than hidden — people should see that the real tool
+   *  can save back. */
+  demo?: boolean
 }
 
 function getDefaultFilename(existingFiles: string[]): string {
@@ -16,7 +20,7 @@ function getDefaultFilename(existingFiles: string[]): string {
   return `README_${n}.md`
 }
 
-export default function SaveArea({ onSave, hasSignedUrl, existingFiles = [] }: SaveAreaProps) {
+export default function SaveArea({ onSave, hasSignedUrl, existingFiles = [], demo = false }: SaveAreaProps) {
   const [showModal, setShowModal] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
   const [filename, setFilename]   = useState('README.md')
@@ -59,6 +63,18 @@ export default function SaveArea({ onSave, hasSignedUrl, existingFiles = [] }: S
     }
   }
 
+  if (demo) {
+    return (
+      <button
+        className={styles.btn}
+        disabled
+        title="Not available in the demo — this build has no repository behind it. Use Export to download the README."
+      >
+        Add README
+      </button>
+    )
+  }
+
   return (
     <>
       <button
@@ -66,7 +82,7 @@ export default function SaveArea({ onSave, hasSignedUrl, existingFiles = [] }: S
         onClick={openModal}
         disabled={saved}
       >
-        {saved ? 'saved!' : 'add README'}
+        {saved ? 'Saved!' : 'Add README'}
       </button>
 
       {showModal && (
@@ -121,14 +137,14 @@ export default function SaveArea({ onSave, hasSignedUrl, existingFiles = [] }: S
 
             <div className={styles.modalActions}>
               <button className={styles.btn} onClick={() => setShowModal(false)}>
-                cancel
+                Cancel
               </button>
               <button
                 className={`${styles.btn} ${styles.btnAccent}`}
                 onClick={handleSave}
                 disabled={!confirmed || saving || (!hasSignedUrl && !token.trim())}
               >
-                {saving ? 'saving…' : 'yes, add README'}
+                {saving ? 'Saving…' : 'Yes, add README'}
               </button>
             </div>
           </div>

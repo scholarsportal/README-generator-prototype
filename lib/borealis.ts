@@ -1,4 +1,5 @@
 import type { DatasetMeta, DataFile, Variable, SignedUrls, VersionEntry } from './types'
+import { DEMO } from './demo'
 
 // NOTE: this is the fallback host used when no siteUrl is supplied. It points at
 // production Borealis, so a missing siteUrl during local development silently
@@ -66,6 +67,16 @@ export async function fetchVariables(
   token?: string,
   siteUrl?: string
 ): Promise<Variable[] | null> {
+  // Demo mode has no server to proxy through; see lib/demo.
+  //
+  // The env var is tested literally rather than through the DEMO const: Next
+  // substitutes process.env.NEXT_PUBLIC_* at build time, so a non-demo build
+  // sees `if (undefined === '1')` and drops the branch together with the
+  // fixture chunk. Going through the imported const leaves the chunk emitted.
+  if (process.env.NEXT_PUBLIC_DEMO === '1') {
+    return (await import('./demo/fixtures')).demoVariables(fileId)
+  }
+
   const params = new URLSearchParams({ fileId: String(fileId) })
   if (signed?.getVariables) params.set('signedUrlBase', signed.getVariables)
   if (token) params.set('token', token)
@@ -86,6 +97,13 @@ export async function saveReadme(
   filename?: string,
   siteUrl?: string
 ): Promise<void> {
+  if (DEMO) {
+    throw new Error(
+      'This is a demo build with no connection to a repository, so it cannot write ' +
+      'to a dataset. Download the README instead.'
+    )
+  }
+
   const res = await fetch('/api/save', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -136,15 +154,27 @@ export function parseSignedUrls(searchParams: URLSearchParams): SignedUrls | und
 export interface CallbackResult {
   pid: string
   signedUrls: SignedUrls
+  /** Dataverse returns the declared queryParameters in this response, not on
+   *  the launch URL, so siteUrl arrives here. */
+  siteUrl: string
 }
 
 export async function resolveCallback(callbackParam: string): Promise<CallbackResult> {
+  // A demo build is static: there is no /api/callback to exchange this for.
+  if (DEMO) {
+    throw new Error(
+      'This demo build cannot complete a Dataverse launch. Run the tool from your ' +
+      'own deployment to use it against a real dataset.'
+    )
+  }
+
   const callbackUrl = atob(callbackParam)
   const res = await fetch(`/api/callback?url=${encodeURIComponent(callbackUrl)}`)
   if (!res.ok) throw new Error(`Callback fetch failed: HTTP ${res.status}`)
 
   const json = await res.json()
   const pid: string = json?.data?.queryParameters?.datasetPid || json.datasetPid || json.pid || ''
+  const siteUrl: string = json?.data?.queryParameters?.siteUrl || json.siteUrl || ''
 
   const arr: { name: string; signedUrl: string }[] = json?.data?.signedUrls || json.signedUrls || []
   const signedUrls: SignedUrls = {}
@@ -157,7 +187,7 @@ export async function resolveCallback(callbackParam: string): Promise<CallbackRe
   }
 
   if (!pid) throw new Error('Callback response did not include a dataset PID.')
-  return { pid, signedUrls }
+  return { pid, signedUrls, siteUrl }
 }
 
 // ── Dataset versions ──────────────────────────────────────────────────────────
@@ -175,6 +205,11 @@ export async function fetchVersions(
   siteUrl?: string,
   signed?: SignedUrls
 ): Promise<VersionEntry[]> {
+  // Literal env test, not the DEMO const — see fetchVariables above.
+  if (process.env.NEXT_PUBLIC_DEMO === '1') {
+    return (await import('./demo/fixtures')).demoVersions()
+  }
+
   const params = new URLSearchParams({ pid })
   if (token) params.set('token', token)
   if (siteUrl) params.set('siteUrl', siteUrl)

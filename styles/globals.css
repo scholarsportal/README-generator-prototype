@@ -1,5 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap');
-
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
@@ -11,11 +10,11 @@
   --text: #1a1814;
   --muted: #6b6560;
   --hint: #a09a92;
-  --accent: #1e6b41;
-  --accent-bg: #e8f3ed;
-  --accent-mid: #2a8a54;
-  --mono: 'DM Mono', monospace;
-  --serif: 'Fraunces', serif;
+  --accent: #166b53;
+  --accent-bg: #e4f2ec;
+  --accent-mid: #12805f;
+  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --serif: 'IBM Plex Serif', Georgia, 'Times New Roman', serif;
   --danger: #b83232;
   --danger-bg: #fdf0ee;
   --radius: 6px;
@@ -93,4 +92,41 @@ html.dark {
   --version-banner-bg: #2a1a22;
   --version-banner-border: #5a3a4a;
   --version-banner-color: #c08098;
+}
+
+/* ==== square-corners experiment: delete this block to revert ==== */
+:root {
+  --radius: 0px;
+  --radius-lg: 0px;
+}
+/* The tokens cover most of it; these are the places a radius was written in
+   directly (rows, tabs, badges, the grid, modals). */
+body *,
+body *::before,
+body *::after {
+  border-radius: 0 !important;
+}
+/* Except the things that are meant to be circles. In dev the CSS-module class
+   keeps its original name as a prefix, which is what these match on. */
+body [class*="spinner"],
+body [class*="Dot"],
+body [class*="dot"],
+body [class*="infoBtn"],
+body input[type="checkbox"],
+body input[type="radio"] {
+  border-radius: 50% !important;
+}
+body input[type="checkbox"] {
+  border-radius: 2px !important;
+}
+/* ==== end square-corners experiment ==== */
+
+
+/* ── links ── */
+/* Their own token rather than --accent: a URL should read as a URL, not as
+   whatever colour the buttons happen to be. Matches the folder blue. */
+:root { --link: #2f6fb5; }
+html.dark { --link: #7fb3e8; }
+@media (prefers-color-scheme: dark) {
+  html:not(.light):not(.dark) { --link: #7fb3e8; }
 }

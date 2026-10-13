@@ -21,8 +21,31 @@ export function parseVersion(v: any, publisher = 'Borealis'): DatasetMeta {
   function primitiveField(name: string, fields = cite): string {
     const f = findField(fields, name)
     if (!f) return ''
-    if (Array.isArray(f.value)) return (f.value as string[]).join(', ')
-    return (f.value as string) || ''
+
+    // A value can be a plain string, or a compound object such as
+    // { keywordValue: { value: 'air quality' }, keywordVocabulary: ... }.
+    // Dataverse sends `keyword` the compound way, and joining those objects raw
+    // is where [object Object] came from. Prefer the <name>Value sub-field,
+    // otherwise take the first sub-value that is a non-empty string.
+    const flat = (v: unknown): string => {
+      if (v == null) return ''
+      if (typeof v === 'string') return v.trim()
+      if (typeof v === 'number' || typeof v === 'boolean') return String(v)
+      if (typeof v !== 'object') return ''
+      const obj = v as Record<string, { value?: unknown } | undefined>
+      const preferred = obj[`${name}Value`]?.value
+      if (typeof preferred === 'string' && preferred.trim()) return preferred.trim()
+      // No <name>Value. Only fall back when there is a single sub-field, so a
+      // vocabulary or URI is never mistaken for the value itself.
+      const subs = Object.values(obj)
+      const only = subs.length === 1 ? subs[0]?.value : undefined
+      return typeof only === 'string' ? only.trim() : ''
+    }
+
+    if (Array.isArray(f.value)) {
+      return (f.value as unknown[]).map(flat).filter(Boolean).join(', ')
+    }
+    return flat(f.value)
   }
 
   function compoundField(name: string, fields = cite): CompoundValue[] {

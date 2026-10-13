@@ -1,0 +1,96 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f5f3ee;
+  --surface: #ffffff;
+  --surface2: #faf9f6;
+  --border: #e0dbd2;
+  --border-mid: #c8c2b8;
+  --text: #1a1814;
+  --muted: #6b6560;
+  --hint: #a09a92;
+  --accent: #1e6b41;
+  --accent-bg: #e8f3ed;
+  --accent-mid: #2a8a54;
+  --mono: 'DM Mono', monospace;
+  --serif: 'Fraunces', serif;
+  --danger: #b83232;
+  --danger-bg: #fdf0ee;
+  --radius: 6px;
+  --radius-lg: 10px;
+}
+
+/* Dark mode via class (manual toggle) */
+html.dark {
+  --bg: #0f0e0b;
+  --surface: #191710;
+  --surface2: #1e1c15;
+  --border: #2a2820;
+  --border-mid: #3a3830;
+  --text: #f0ece2;
+  --muted: #9e9888;
+  --hint: #5e5c54;
+  --accent: #4db876;
+  --accent-bg: #0c2018;
+  --accent-mid: #3a9a60;
+  --danger: #e05050;
+  --danger-bg: #1e0e0e;
+}
+
+/* Dark mode via system preference (when no manual override) */
+@media (prefers-color-scheme: dark) {
+  html:not(.light):not(.dark) {
+    --bg: #0f0e0b;
+    --surface: #191710;
+    --surface2: #1e1c15;
+    --border: #2a2820;
+    --border-mid: #3a3830;
+    --text: #f0ece2;
+    --muted: #9e9888;
+    --hint: #5e5c54;
+    --accent: #4db876;
+    --accent-bg: #0c2018;
+    --accent-mid: #3a9a60;
+    --danger: #e05050;
+    --danger-bg: #1e0e0e;
+  }
+}
+
+html, body { height: 100%; }
+
+body {
+  font-family: var(--mono);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 3px; }
+
+/* Version banner colors */
+:root {
+  --version-banner-bg: #f9f0f5;
+  --version-banner-border: #e8c8d8;
+  --version-banner-color: #b05a8a;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.light):not(.dark) {
+    --version-banner-bg: #2a1a22;
+    --version-banner-border: #5a3a4a;
+    --version-banner-color: #c08098;
+  }
+}
+
+html.dark {
+  --version-banner-bg: #2a1a22;
+  --version-banner-border: #5a3a4a;
+  --version-banner-color: #c08098;
+}

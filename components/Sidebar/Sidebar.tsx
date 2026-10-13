@@ -6,6 +6,9 @@ import { SECTION_META, PINK_SECTIONS, GREEN_SECTIONS } from '@/lib/types'
 import { formatBytes, fileExt, buildTree, isTabular } from '@/lib/template'
 import type { SectionBlock } from '@/lib/sections'
 import { formatHint } from '@/lib/plaintext'
+import type { TableEdit } from '@/lib/tables'
+import { EMPTY_EDIT } from '@/lib/tables'
+import SectionTable from './SectionTable'
 import type { TreeNode } from '@/lib/types'
 import styles from './Sidebar.module.css'
 
@@ -42,6 +45,11 @@ interface SidebarProps {
   sectionText: Partial<Record<Section, string>>
   onSectionTextChange: (s: Section, value: string) => void
   onSectionReset: (s: Section) => void
+  /** Columns added and cells typed in the Files and Variables grids. */
+  tableEdits: { files?: TableEdit; variables?: TableEdit }
+  onTableEditChange: (which: 'files' | 'variables', edit: TableEdit) => void
+  /** Called when the Variables editor opens, so its data can be fetched. */
+  onNeedVariables?: () => void
   /** True before anything is generated: the panel is centred and roomier. */
   wide: boolean
 }
@@ -56,6 +64,7 @@ export default function Sidebar({
   onGenerate, generating,
   error,
   sectionBlocks, sectionText, onSectionTextChange, onSectionReset, wide,
+  tableEdits, onTableEditChange, onNeedVariables,
 }: SidebarProps) {
   const tree = files.length ? buildTree(files) : null
   const canGenerate = !!meta && selectedIds.size > 0 && !generating
@@ -79,9 +88,91 @@ export default function Sidebar({
   function toggleExpanded(s: Section) {
     setExpanded((prev) => {
       const next = new Set(prev)
-      next.has(s) ? next.delete(s) : next.add(s)
+      if (next.has(s)) {
+        next.delete(s)
+      } else {
+        next.add(s)
+        // Variable metadata is a separate request, so it is only fetched when
+        // someone actually opens that editor.
+        if (s === 'variables') onNeedVariables?.()
+      }
       return next
     })
+  }
+
+  // Open or close a whole group of sections at once. Expanding a group that
+  // contains Variables triggers the same fetch as opening it on its own.
+  function setExpandedFor(list: Section[], open: boolean) {
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      for (const s of list) {
+        if (open) next.add(s)
+        else next.delete(s)
+      }
+      return next
+    })
+    if (open && list.includes('variables')) onNeedVariables?.()
+  }
+
+  function expandControls(list: Section[]) {
+    const anyOpen = list.some((s) => expanded.has(s))
+    const allOpen = list.every((s) => expanded.has(s))
+    return (
+      <span className={styles.expandControls}>
+        <button
+          type="button"
+          className={styles.expandAllBtn}
+          onClick={() => setExpandedFor(list, true)}
+          disabled={allOpen}
+        >
+          Expand all
+        </button>
+        <button
+          type="button"
+          className={styles.expandAllBtn}
+          onClick={() => setExpandedFor(list, false)}
+          disabled={!anyOpen}
+        >
+          Collapse all
+        </button>
+      </span>
+    )
+  }
+
+  function tableHandlers(which: 'files' | 'variables') {
+    const current = tableEdits[which] ?? EMPTY_EDIT
+    return {
+      edit: current,
+      onCellChange: (rowKey: string, column: string, value: string) => {
+        onTableEditChange(which, {
+          ...current,
+          cells: { ...current.cells, [rowKey]: { ...(current.cells[rowKey] || {}), [column]: value } },
+        })
+      },
+      onAddColumn: (name: string) => {
+        onTableEditChange(which, { ...current, extraColumns: [...current.extraColumns, name] })
+      },
+      onRemoveColumn: (name: string) => {
+        const cells: TableEdit['cells'] = {}
+        for (const [rowKey, row] of Object.entries(current.cells)) {
+          const { [name]: _removed, ...rest } = row
+          if (Object.keys(rest).length) cells[rowKey] = rest
+        }
+        onTableEditChange(which, { extraColumns: current.extraColumns.filter((c) => c !== name), cells })
+      },
+      onRenameColumn: (from: string, to: string) => {
+        const cells: TableEdit['cells'] = {}
+        for (const [rowKey, row] of Object.entries(current.cells)) {
+          const next = { ...row }
+          if (from in next) { next[to] = next[from]; delete next[from] }
+          cells[rowKey] = next
+        }
+        onTableEditChange(which, {
+          extraColumns: current.extraColumns.map((c) => (c === from ? to : c)),
+          cells,
+        })
+      },
+    }
   }
 
   function toggleAllVars(checked: boolean) {
@@ -126,6 +217,11 @@ export default function Sidebar({
         checked={sections.includes(s)}
         onToggle={() => onToggleSection(s)}
         block={sectionBlocks[s]}
+        tableProps={
+          s === 'files' || s === 'variables'
+            ? { ...tableHandlers(s), readOnly: s === 'variables' }
+            : undefined
+        }
         text={sectionText[s]}
         onTextChange={(v) => onSectionTextChange(s, v)}
         onReset={() => onSectionReset(s)}
@@ -147,12 +243,12 @@ export default function Sidebar({
               Anything you typed into a section is kept, and will still be used for the new version.
             </p>
             <div className={styles.versionModalActions}>
-              <button className={styles.btn} onClick={() => setPendingVersion(null)}>cancel</button>
+              <button className={styles.btn} onClick={() => setPendingVersion(null)}>Cancel</button>
               <button
                 className={`${styles.btn} ${styles.btnAccent}`}
                 onClick={() => { onVersionChange(pendingVersion); setPendingVersion(null); }}
               >
-                proceed
+                Proceed
               </button>
             </div>
           </div>
@@ -232,7 +328,7 @@ export default function Sidebar({
               {hasRestricted && (
                 <span className={styles.legendRestricted}>
                   <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
-                    <rect x="2" y="5" width="8" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
+                    <rect x="2" y="5" width="8" height="6" rx="1.5" fill="currentColor" fillOpacity="0.22" stroke="currentColor" strokeWidth="1.2"/>
                     <path d="M4 5V3.5a2 2 0 0 1 4 0" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
                   </svg>
                   restricted files are unchecked by default
@@ -318,12 +414,15 @@ export default function Sidebar({
               <div className={styles.tierLabelRow}>
                 <div className={styles.tierLabel}>
                   <span className={styles.tierDot} style={{ background: '#ea9999' }} />
-                  Minimum README
+                  Minimum
                 </div>
-                <label className={styles.selectAllCheck}>
-                  <input type="checkbox" checked={allMinChecked} onChange={(e) => toggleAllMin(e.target.checked)} />
-                  all
-                </label>
+                <span className={styles.rowActions}>
+                  {expandControls(PINK_SECTIONS)}
+                  <label className={styles.selectAllCheck}>
+                    <input type="checkbox" checked={allMinChecked} onChange={(e) => toggleAllMin(e.target.checked)} />
+                    all
+                  </label>
+                </span>
               </div>
               {PINK_SECTIONS.map((s) => renderSectionRow(s, { checkbox: true }))}
             </div>
@@ -331,12 +430,15 @@ export default function Sidebar({
               <div className={styles.tierLabelRow}>
                 <div className={styles.tierLabel}>
                   <span className={styles.tierDot} style={{ background: '#93c47d' }} />
-                  Enhanced README
+                  Enhanced
                 </div>
-                <label className={styles.selectAllCheck}>
-                  <input type="checkbox" checked={allEnhChecked} onChange={(e) => toggleAllEnh(e.target.checked)} />
-                  all
-                </label>
+                <span className={styles.rowActions}>
+                  {expandControls(GREEN_SECTIONS)}
+                  <label className={styles.selectAllCheck}>
+                    <input type="checkbox" checked={allEnhChecked} onChange={(e) => toggleAllEnh(e.target.checked)} />
+                    all
+                  </label>
+                </span>
               </div>
               {GREEN_SECTIONS.map((s) => renderSectionRow(s, { checkbox: true }))}
             </div>
@@ -378,14 +480,17 @@ export default function Sidebar({
               className={`${styles.btn} ${styles.btnFull}`}
               onClick={() => onAddCustomSection({ id: crypto.randomUUID(), title: '', content: '' })}
             >
-              + add custom section
+              + Add custom section
             </button>
           </div>
         )}
 
         {mode === 'basic' && meta && (
           <div className={styles.basicSummary}>
-            <div className={styles.basicSummaryTitle}>Will include:</div>
+            <div className={styles.basicSummaryHead}>
+              <span className={styles.basicSummaryTitle}>Will include:</span>
+              {expandControls(PINK_SECTIONS)}
+            </div>
             {PINK_SECTIONS.map((s) => renderSectionRow(s, { checkbox: false, dotColor: '#ea9999' }))}
           </div>
         )}
@@ -396,7 +501,7 @@ export default function Sidebar({
             onClick={onGenerate}
             disabled={!canGenerate}
           >
-            {generating ? 'generating…' : 'generate README'}
+            {generating ? 'Generating…' : 'Generate README'}
           </button>
         )}
 
@@ -407,9 +512,19 @@ export default function Sidebar({
 
 // ── One section: checkbox, expander, and its editable content ────────────────
 
+interface TableProps {
+  edit: TableEdit
+  onCellChange: (rowKey: string, column: string, value: string) => void
+  onAddColumn: (name: string) => void
+  onRemoveColumn: (name: string) => void
+  onRenameColumn: (from: string, to: string) => void
+  /** True for the Variables tables: display only, no editing affordances. */
+  readOnly?: boolean
+}
+
 function SectionRow({
   section, label, description, checkbox, dotColor, checked, onToggle,
-  block, text, onTextChange, onReset, open, onToggleOpen,
+  block, text, onTextChange, onReset, open, onToggleOpen, tableProps,
 }: {
   section: Section
   label: string
@@ -424,6 +539,8 @@ function SectionRow({
   onReset: () => void
   open: boolean
   onToggleOpen: () => void
+  /** Supplied for the two table sections only. */
+  tableProps?: TableProps
 }) {
   const edited = text !== undefined
   const editable = block ? block.editable : true
@@ -470,17 +587,16 @@ function SectionRow({
             <div className={styles.sectionNote}>Load a dataset to see this section.</div>
           )}
 
-          {block && !editable && section === 'variables' && (
-            <div className={styles.sectionNote}>
-              Variable tables are built from the files ticked in column C2 when you generate.
-            </div>
-          )}
-
-          {block && !editable && section !== 'variables' && (
-            <>
-              <div className={styles.sectionNote}>Built from the files you tick above.</div>
-              <pre className={styles.sectionPreview}>{block.body.trimEnd()}</pre>
-            </>
+          {block && !editable && block.tables && tableProps && (
+            <SectionTable
+              models={block.tables}
+              emptyNote={
+                section === 'variables'
+                  ? 'No variable metadata yet. Tick tabular files in column C2 above.'
+                  : 'No files selected yet.'
+              }
+              {...tableProps}
+            />
           )}
 
           {block && editable && (
@@ -495,7 +611,7 @@ function SectionRow({
               <div className={styles.sectionEditorFoot}>
                 <span>{hint}</span>
                 {edited && (
-                  <button type="button" className={styles.resetBtn} onClick={onReset}>reset</button>
+                  <button type="button" className={styles.resetBtn} onClick={onReset}>Reset</button>
                 )}
               </div>
             </>
@@ -517,17 +633,7 @@ function TreeLevel({ node, files, selectedIds, variableIds, onToggleFile, onTogg
 }) {
   return (
     <>
-      {node.files.map((f) => (
-        <FileItem
-          key={f.id}
-          file={f}
-          depth={depth}
-          checked={selectedIds.has(f.id)}
-          varChecked={variableIds.has(f.id)}
-          onToggleFile={onToggleFile}
-          onToggleVariable={onToggleVariable}
-        />
-      ))}
+      {/* folders first, the way every file browser orders them */}
       {Object.entries(node.dirs).map(([dirName, child]) => (
         <FolderNode
           key={dirName}
@@ -543,6 +649,17 @@ function TreeLevel({ node, files, selectedIds, variableIds, onToggleFile, onTogg
           pathPrefix={pathPrefix ? `${pathPrefix}/${dirName}` : dirName}
         />
       ))}
+      {node.files.map((f) => (
+        <FileItem
+          key={f.id}
+          file={f}
+          depth={depth}
+          checked={selectedIds.has(f.id)}
+          varChecked={variableIds.has(f.id)}
+          onToggleFile={onToggleFile}
+          onToggleVariable={onToggleVariable}
+        />
+      ))}
     </>
   )
 }
@@ -556,7 +673,7 @@ function FileItem({ file, depth, checked, varChecked, onToggleFile, onToggleVari
   const [showTip, setShowTip] = useState(false)
 
   return (
-    <div className={styles.fileRow}>
+    <div className={`${styles.fileRow} ${file.restricted ? styles.fileRowRestricted : ''}`}>
       <div className={styles.cbCol}>
         <input type="checkbox" checked={checked} onChange={(e) => onToggleFile(file.id, e.target.checked)} />
       </div>
@@ -566,10 +683,19 @@ function FileItem({ file, depth, checked, varChecked, onToggleFile, onToggleVari
           : <span className={styles.cbPlaceholder} />
         }
       </div>
-      {/* indent for folder depth */}
-      {depth > 0 && <span style={{ width: depth * 16, flexShrink: 0 }} />}
+      {/* one rail per level: a child always traces back to its parent */}
+      {Array.from({ length: depth }, (_, i) => (
+        <span key={i} className={styles.rail} />
+      ))}
+      {/* stands in for a folder's chevron, so file and folder names align */}
+      <span className={styles.chevSpacer} />
       <span className={styles.extBadge}>{fileExt(file.name)}</span>
-      <span className={styles.fileName} title={file.name}>{file.name}</span>
+      <span
+        className={`${styles.fileName} ${file.restricted ? styles.fileNameRestricted : ''}`}
+        title={file.restricted ? `${file.name} — restricted` : file.name}
+      >
+        {file.name}
+      </span>
       <span className={styles.fileSize}>{formatBytes(file.size)}</span>
       <span className={styles.lockCol}>
         {file.restricted && (
@@ -590,7 +716,7 @@ function FileItem({ file, depth, checked, varChecked, onToggleFile, onToggleVari
 function UnlockIcon() {
   return (
     <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-      <rect x="2" y="5" width="8" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
+      <rect x="2" y="5" width="8" height="6" rx="1.5" fill="currentColor" fillOpacity="0.22" stroke="currentColor" strokeWidth="1.2"/>
       <path d="M4 5V3.5a2 2 0 0 1 4 0" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
     </svg>
   )
@@ -622,7 +748,7 @@ function FolderNode({ name, fullPath, node, files, selectedIds, variableIds, onT
 
   return (
     <>
-      <div className={styles.fileRow}>
+      <div className={`${styles.fileRow} ${styles.folderRow}`}>
         <div className={styles.cbCol}>
           <input
             type="checkbox"
@@ -640,17 +766,19 @@ function FolderNode({ name, fullPath, node, files, selectedIds, variableIds, onT
             : <span className={styles.cbPlaceholder} />
           }
         </div>
-        {/* indent for nested folders */}
-        {depth > 0 && <span style={{ width: depth * 16, flexShrink: 0 }} />}
+        {/* one rail per level: a child always traces back to its parent */}
+        {Array.from({ length: depth }, (_, i) => (
+          <span key={i} className={styles.rail} />
+        ))}
         <button className={styles.folderToggle} onClick={() => setOpen((o) => !o)}>
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform .15s' }}>
             <path d="M3 2L7 5L3 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <svg width="14" height="14" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0, color: '#ea9999' }}>
+        <svg width="14" height="14" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0, color: 'var(--folder)' }}>
           <path d="M1 3.5C1 2.67 1.67 2 2.5 2H4.5L5.5 3H9.5C10.33 3 11 3.67 11 4.5V8.5C11 9.33 10.33 10 9.5 10H2.5C1.67 10 1 9.33 1 8.5V3.5Z" fill="currentColor" opacity="0.2" stroke="currentColor" strokeWidth="1" />
         </svg>
-        <span className={styles.folderName}>{fullPath}</span>
+        <span className={styles.folderName} title={fullPath}>{name}</span>
         <span className={styles.lockCol} />
       </div>
       {open && (

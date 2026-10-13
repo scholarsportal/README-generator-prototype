@@ -40,9 +40,8 @@ export default function Header({ locale = 'en', onLocaleChange }: HeaderProps) {
   return (
     <header className={styles.header}>
       <div className={styles.wordmark}>
-        Borealis README<em>.</em>gen
+        Borealis README Generator
       </div>
-      <div className={styles.badge}>external tool</div>
       <InfoTooltip />
       <div className={styles.actions}>
         {onLocaleChange && (
@@ -54,7 +53,7 @@ export default function Header({ locale = 'en', onLocaleChange }: HeaderProps) {
               lang="en"
               aria-pressed={locale === 'en'}
             >
-              EN
+              English
             </button>
             <button
               className={`${styles.themeBtn} ${locale === 'fr' ? styles.themeBtnActive : ''}`}
@@ -63,7 +62,7 @@ export default function Header({ locale = 'en', onLocaleChange }: HeaderProps) {
               lang="fr"
               aria-pressed={locale === 'fr'}
             >
-              FR
+              Français
             </button>
           </div>
         )}

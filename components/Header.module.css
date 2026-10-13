@@ -168,3 +168,15 @@
   transition: background 0.12s;
 }
 .exportItem:hover { background: var(--surface2); }
+
+
+/* language labels on the wordmark font */
+/* A button inherits no font, and .themeBtn set none because it only ever held
+   icons. 12px rather than the 11px the mono buttons use — a serif needs the
+   extra room — and no letter-spacing, which suits mono but muddies a serif.
+   The icon buttons share this class; a font-family is harmless to an SVG. */
+.themeBtn {
+  font-family: var(--serif);
+  font-size: 12px;
+  line-height: 1;
+}

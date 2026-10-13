@@ -1,0 +1,132 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f5f3ee;
+  --surface: #ffffff;
+  --surface2: #faf9f6;
+  --border: #e0dbd2;
+  --border-mid: #c8c2b8;
+  --text: #1a1814;
+  --muted: #6b6560;
+  --hint: #a09a92;
+  --accent: #166b53;
+  --accent-bg: #e4f2ec;
+  --accent-mid: #12805f;
+  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --serif: 'IBM Plex Serif', Georgia, 'Times New Roman', serif;
+  --danger: #b83232;
+  --danger-bg: #fdf0ee;
+  --radius: 6px;
+  --radius-lg: 10px;
+}
+
+/* Dark mode via class (manual toggle) */
+html.dark {
+  --bg: #0f0e0b;
+  --surface: #191710;
+  --surface2: #1e1c15;
+  --border: #2a2820;
+  --border-mid: #3a3830;
+  --text: #f0ece2;
+  --muted: #9e9888;
+  --hint: #5e5c54;
+  --accent: #57c99a;
+  --accent-bg: #0b201a;
+  --accent-mid: #42b183;
+  --danger: #e05050;
+  --danger-bg: #1e0e0e;
+}
+
+/* Dark mode via system preference (when no manual override) */
+@media (prefers-color-scheme: dark) {
+  html:not(.light):not(.dark) {
+    --bg: #0f0e0b;
+    --surface: #191710;
+    --surface2: #1e1c15;
+    --border: #2a2820;
+    --border-mid: #3a3830;
+    --text: #f0ece2;
+    --muted: #9e9888;
+    --hint: #5e5c54;
+    --accent: #57c99a;
+    --accent-bg: #0b201a;
+    --accent-mid: #42b183;
+    --danger: #e05050;
+    --danger-bg: #1e0e0e;
+  }
+}
+
+html, body { height: 100%; }
+
+body {
+  font-family: var(--mono);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 3px; }
+
+/* Version banner colors */
+:root {
+  --version-banner-bg: #f9f0f5;
+  --version-banner-border: #e8c8d8;
+  --version-banner-color: #b05a8a;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.light):not(.dark) {
+    --version-banner-bg: #2a1a22;
+    --version-banner-border: #5a3a4a;
+    --version-banner-color: #c08098;
+  }
+}
+
+html.dark {
+  --version-banner-bg: #2a1a22;
+  --version-banner-border: #5a3a4a;
+  --version-banner-color: #c08098;
+}
+
+/* ==== square-corners experiment: delete this block to revert ==== */
+:root {
+  --radius: 0px;
+  --radius-lg: 0px;
+}
+/* The tokens cover most of it; these are the places a radius was written in
+   directly (rows, tabs, badges, the grid, modals). */
+body *,
+body *::before,
+body *::after {
+  border-radius: 0 !important;
+}
+/* Except the things that are meant to be circles. In dev the CSS-module class
+   keeps its original name as a prefix, which is what these match on. */
+body [class*="spinner"],
+body [class*="Dot"],
+body [class*="dot"],
+body [class*="infoBtn"],
+body input[type="checkbox"],
+body input[type="radio"] {
+  border-radius: 50% !important;
+}
+body input[type="checkbox"] {
+  border-radius: 2px !important;
+}
+/* ==== end square-corners experiment ==== */
+
+
+/* ── links ── */
+/* Their own token rather than --accent: a URL should read as a URL, not as
+   whatever colour the buttons happen to be. Matches the folder blue. */
+:root { --link: #2f6fb5; }
+html.dark { --link: #7fb3e8; }
+@media (prefers-color-scheme: dark) {
+  html:not(.light):not(.dark) { --link: #7fb3e8; }
+}

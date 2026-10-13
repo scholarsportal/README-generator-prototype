@@ -157,7 +157,7 @@
 .preview :global(pre code) { background: none; padding: 0; }
 .preview :global(blockquote) { border-left: 3px solid var(--accent); padding-left: 1rem; color: var(--muted); margin-bottom: 0.75rem; }
 .preview :global(hr) { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
-.preview :global(a) { color: var(--accent); }
+.preview :global(a) { color: var(--link, var(--accent)); }
 .preview :global(table) { width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-size: 12px; font-family: var(--mono); }
 .preview :global(th) { background: var(--bg); padding: 5px 10px; text-align: left; border: 1px solid var(--border); font-weight: 500; }
 .preview :global(td) { padding: 5px 10px; border: 1px solid var(--border); }

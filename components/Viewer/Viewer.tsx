@@ -31,7 +31,7 @@ export default function Viewer({ markdown, onChange, tab, onTabChange, onCopy, o
             className={`${styles.tab} ${tab === 'preview' ? styles.active : ''}`}
             onClick={() => onTabChange('preview')}
           >
-            preview
+            Preview
           </button>
           <button
             className={`${styles.tab} ${tab === 'raw' ? styles.active : ''}`}
@@ -142,7 +142,7 @@ function ExportBar({
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
       >
-        export
+        Export
         <svg width="8" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true"
           style={{ marginLeft: 6, transform: open ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform .18s' }}>
           <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -151,7 +151,7 @@ function ExportBar({
 
       <div className={`${styles.exportOptions} ${open ? styles.exportOptionsOpen : ''}`} aria-hidden={!open}>
         <button className={styles.exportItem} onClick={handleCopy} tabIndex={open ? 0 : -1}>
-          {copied ? 'copied' : 'copy'}
+          {copied ? 'Copied' : 'Copy'}
         </button>
         <button className={styles.exportItem} onClick={() => onDownload('md')} tabIndex={open ? 0 : -1}>.md</button>
         <button className={styles.exportItem} onClick={() => onDownload('txt')} tabIndex={open ? 0 : -1}>.txt</button>

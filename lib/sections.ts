@@ -2,6 +2,7 @@ import type { DatasetMeta, DataFile, Variable, Section } from './types'
 import { t as translate, tn as translateN, type Locale } from './i18n'
 import { formatBytes, fileExt, isTabular } from './format'
 import type { SectionKind } from './plaintext'
+import { filesTable, variableTables, tableToMarkdown, filesIntro, EMPTY_EDIT, type TableEdit, type TableModel } from './tables'
 
 export interface SectionBlock {
   section: Section
@@ -24,6 +25,8 @@ export interface SectionBlock {
   plain: string
   /** The shape of this section's plain text, and how it converts back. */
   kind: SectionKind
+  /** For the table sections: the grid behind the markdown, with edits applied. */
+  tables?: TableModel[]
 }
 
 export interface BuildOptions {
@@ -32,6 +35,8 @@ export interface BuildOptions {
   allFiles: DataFile[]
   variableMap: Map<number, Variable[] | null>
   locale?: Locale
+  /** Columns added and cells typed in the Files and Variables grids. */
+  tableEdits?: { files?: TableEdit; variables?: TableEdit }
 }
 
 const PLACEHOLDER = (text: string) => `_${text}_`
@@ -68,7 +73,7 @@ export function buildSections(opts: BuildOptions): SectionBlock[] {
   const add = (
     section: Section,
     lines: string[],
-    opts: { placeholder?: string; editable?: boolean; plain?: string; kind?: SectionKind } = {}
+    opts: { placeholder?: string; editable?: boolean; plain?: string; kind?: SectionKind; tables?: TableModel[] } = {}
   ) => {
     out.push({
       section,
@@ -78,6 +83,7 @@ export function buildSections(opts: BuildOptions): SectionBlock[] {
       editable: opts.editable ?? true,
       plain: opts.plain ?? '',
       kind: opts.kind ?? 'prose',
+      tables: opts.tables,
     })
   }
 
@@ -316,44 +322,41 @@ export function buildSections(opts: BuildOptions): SectionBlock[] {
     }
   }
 
-  // ── Files (generated table, read-only) ──────────────────────────────────────
+  // ── Files (a grid: columns can be added, cells typed over) ──────────────────
   {
+    const model = filesTable(selectedFiles, locale, opts.tableEdits?.files ?? EMPTY_EDIT)
     const lines: string[] = []
-    const excluded = allFiles.length - selectedFiles.length
-    const note = excluded > 0 ? ` ${tn('readme.files.excluded', excluded)}` : ''
-    lines.push(`${tn('readme.files.count', selectedFiles.length)}${note}.\n`)
-    lines.push(`| ${t('readme.files.col.file')} | ${t('readme.files.col.format')} | ${t('readme.files.col.size')} | ${t('readme.files.col.description')} |`)
-    lines.push(`|------|--------|------|-------------|`)
-    for (const f of selectedFiles) {
-      lines.push(`| \`${f.name}\` | ${f.contentType || fileExt(f.name)} | ${formatBytes(f.size, locale) || '—'} | ${f.description || '—'} |`)
-    }
+    lines.push(`${filesIntro(selectedFiles.length, allFiles.length - selectedFiles.length, locale)}\n`)
+    lines.push(...tableToMarkdown(model, '|------|--------|------|-------------|'))
     lines.push('')
-    add('files', lines, { editable: false, kind: 'table' })
+    add('files', lines, { editable: false, kind: 'table', tables: [model] })
   }
 
-  // ── Variables (generated tables, read-only) ─────────────────────────────────
+  // ── Variables (one grid per tabular file) ───────────────────────────────────
   {
     const lines: string[] = []
     const tabular = selectedFiles.filter(isTabular)
+    // Read-only: variable names, labels and types come from the ingest, so
+    // any edit still sitting in state is deliberately ignored rather than
+    // reaching the generated README.
+    const models = variableTables(selectedFiles, variableMap, locale, EMPTY_EDIT)
     if (tabular.length) {
       lines.push(`${t('readme.variables.intro')}\n`)
-      for (const f of tabular) {
+      tabular.forEach((f, i) => {
+        const model = models[i]
         lines.push(`### \`${f.name}\``)
         if (f.description) lines.push(`${f.description}\n`)
-        const vars = variableMap.get(f.id)
-        if (vars && vars.length) {
-          lines.push(`| ${t('readme.variables.col.variable')} | ${t('readme.variables.col.label')} | ${t('readme.variables.col.type')} |`)
-          lines.push(`|----------|-------|------|`)
-          for (const v of vars) lines.push(`| \`${v.name}\` | ${v.label || '—'} | ${v.type || '—'} |`)
+        if (model && model.rows.length) {
+          lines.push(...tableToMarkdown(model, '|----------|-------|------|'))
           lines.push('')
         } else {
           lines.push(`_${t('readme.variables.unavailable')}_\n`)
         }
-      }
+      })
     } else {
       lines.push(`_${t('readme.variables.none')}_\n`)
     }
-    add('variables', lines, { editable: false, kind: 'table' })
+    add('variables', lines, { editable: false, kind: 'table', tables: models })
   }
 
   // ── Abbreviations (always a prompt) ─────────────────────────────────────────

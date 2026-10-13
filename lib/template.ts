@@ -2,12 +2,15 @@ import type { DatasetMeta, DataFile, Variable, Section } from './types'
 import { t as translate, type Locale } from './i18n'
 import { buildSections, titleBlock, type SectionBlock } from './sections'
 import { renderSection } from './plaintext'
+import type { TableEdit } from './tables'
 
 // Re-exported so existing imports from '@/lib/template' keep working.
 export { TABULAR_TYPES, isTabular, formatBytes, fileExt, buildTree } from './format'
 export { buildSections, titleBlock } from './sections'
 export { renderSection, formatHint } from './plaintext'
 export type { SectionKind } from './plaintext'
+export { filesTable, variableTables, EMPTY_EDIT } from './tables'
+export type { TableEdit, TableModel, TableRow } from './tables'
 export type { SectionBlock } from './sections'
 
 const FOOTER_URL = 'https://github.com/scholarsportal/README-generator'
@@ -27,6 +30,8 @@ export interface GenerateOptions {
    * treated as "nothing typed" and falls back to it too.
    */
   overrides?: Partial<Record<Section, string>>
+  /** Columns added and cells typed in the Files and Variables grids. */
+  tableEdits?: { files?: TableEdit; variables?: TableEdit }
 }
 
 export function generateReadme(opts: GenerateOptions): string {
@@ -35,7 +40,7 @@ export function generateReadme(opts: GenerateOptions): string {
   const overrides = opts.overrides ?? {}
   const t = (key: string, vars?: Record<string, string | number>) => translate(key, locale, vars)
 
-  const blocks: SectionBlock[] = buildSections({ meta: m, selectedFiles, allFiles, variableMap, locale })
+  const blocks: SectionBlock[] = buildSections({ meta: m, selectedFiles, allFiles, variableMap, locale, tableEdits: opts.tableEdits })
   const parts: string[] = []
 
   // Title: always present, and editable like any other section. What the user

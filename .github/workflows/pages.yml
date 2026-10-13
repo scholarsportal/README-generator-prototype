@@ -1,0 +1,68 @@
+name: Deploy demo to GitHub Pages
+
+# The demo is the same app with NEXT_PUBLIC_DEMO=1: reads resolve from the
+# fixtures in lib/demo instead of the API routes, and saving back is disabled.
+# See lib/demo/index.ts for why a static build cannot talk to Dataverse.
+#
+# This repository's root IS the Next.js project, so every path here is relative
+# to the root. Enable once under Settings → Pages → Source → GitHub Actions.
+
+on:
+  push:
+    branches: [sep_22]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a running deploy finish rather than cancelling it halfway.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # Static export refuses to build with route handlers present: they read
+      # request.url, so Next cannot prerender them. Removing them here keeps the
+      # repository untouched — this is a throwaway checkout.
+      - name: Remove API routes (not exportable, and unused in demo mode)
+        run: rm -rf app/api
+
+      - name: Build static demo
+        env:
+          NEXT_PUBLIC_DEMO: '1'
+          # Must match the repository name, since Pages serves from /<repo>/.
+          NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
+        run: npm run build
+
+      # Jekyll drops any directory starting with an underscore, which would take
+      # _next/ — the whole bundle — with it.
+      - name: Disable Jekyll
+        run: touch out/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
