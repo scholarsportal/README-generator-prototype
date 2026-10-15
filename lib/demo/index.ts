@@ -1,5 +1,6 @@
-import type { VersionEntry } from '../types'
+import type { VersionEntry, Variable } from '../types'
 import { parseVersion, parseFiles, versionLabel, versionValue } from '../parseVersion'
+import { parseVariables } from '../parseVariables'
 
 /**
  * Demo mode.
@@ -52,4 +53,110 @@ export function versionsFromRaw(json: unknown): VersionEntry[] {
     meta: parseVersion(v),
     files: parseFiles(v?.files),
   }))
+}
+
+// ── Loading a real public dataset ───────────────────────────────────────────
+//
+// The demo is static, so there is no proxy — the browser calls Dataverse
+// directly. That works only for PUBLIC datasets and only because Dataverse
+// serves its API with `Access-Control-Allow-Origin: *` (the :AllowCors
+// setting). No API token is involved and none would help: a token in
+// client-side JavaScript on a public page would be readable by anyone.
+//
+// Drafts and restricted files are therefore out of reach here, which is fine —
+// they are exactly the cases that need the real external tool.
+
+export const PUBLIC_SITE = 'https://borealisdata.ca'
+
+/**
+ * Accept whatever someone pastes and turn it into a Dataverse persistentId.
+ *
+ * All of these are the same dataset:
+ *   doi:10.5683/SP3/ABCDEF
+ *   10.5683/SP3/ABCDEF
+ *   https://doi.org/10.5683/SP3/ABCDEF
+ *   https://borealisdata.ca/dataset.xhtml?persistentId=doi:10.5683/SP3/ABCDEF
+ *   https://borealisdata.ca/citation?persistentId=doi:10.5683/SP3/ABCDEF
+ */
+export function normalizeDoi(input: string): string {
+  let s = input.trim()
+  if (!s) return ''
+
+  // A dataset page URL carries the id in a query parameter.
+  const q = s.match(/[?&]persistentId=([^&#]+)/i)
+  if (q) {
+    s = decodeURIComponent(q[1]).trim()
+  } else {
+    // Strip a resolver prefix: https://doi.org/10.5683/… → 10.5683/…
+    s = s.replace(/^https?:\/\/(dx\.)?doi\.org\//i, '')
+    s = s.replace(/^https?:\/\/hdl\.handle\.net\//i, 'hdl:')
+  }
+
+  // Already prefixed (doi:, hdl:, perma:) — leave it alone.
+  if (/^[a-z]+:/i.test(s)) return s
+  // A bare DOI starts with the registrant code, e.g. 10.5683/SP3/ABCDEF.
+  if (/^10\.\d{4,9}\//.test(s)) return 'doi:' + s
+  return s
+}
+
+/** Fetch every version of a public dataset straight from the repository. */
+export async function fetchPublicVersions(
+  doi: string,
+  siteUrl: string = PUBLIC_SITE
+): Promise<VersionEntry[]> {
+  const pid = normalizeDoi(doi)
+  if (!pid) throw new Error('Enter a DOI.')
+  if (!/^(doi|hdl|perma):/i.test(pid)) {
+    throw new Error(
+      `"${doi.trim()}" does not look like a DOI. It should look like ` +
+        'doi:10.5683/SP3/ABCDEF, or paste the dataset page URL.'
+    )
+  }
+
+  const url =
+    `${siteUrl.replace(/\/$/, '')}/api/datasets/:persistentId/versions` +
+    `?persistentId=${encodeURIComponent(pid)}`
+
+  let res: Response
+  try {
+    res = await fetch(url)
+  } catch {
+    // A network-level failure here is almost always CORS or the dataset being
+    // behind a login, and the browser deliberately hides which.
+    throw new Error(
+      'Could not reach the repository. This page can only read datasets that ' +
+        'are published and publicly visible.'
+    )
+  }
+
+  if (res.status === 404) {
+    throw new Error(`No published dataset found for ${pid}.`)
+  }
+  if (res.status === 401 || res.status === 403) {
+    throw new Error(
+      `${pid} is not publicly readable. Drafts and restricted datasets need ` +
+        'the real tool, launched from the dataset page.'
+    )
+  }
+  if (!res.ok) {
+    throw new Error(`The repository returned HTTP ${res.status}.`)
+  }
+
+  return versionsFromRaw(await res.json())
+}
+
+/** Variable metadata for one file of a public dataset. */
+export async function fetchPublicVariables(
+  fileId: number,
+  siteUrl: string
+): Promise<Variable[] | null> {
+  try {
+    const res = await fetch(
+      `${siteUrl.replace(/\/$/, '')}/api/files/${fileId}/dataTables`
+    )
+    if (!res.ok) return null
+    return parseVariables(await res.json())
+  } catch {
+    return null
+  }
 }

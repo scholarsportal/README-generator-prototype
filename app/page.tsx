@@ -9,7 +9,7 @@ import { generateReadme, isTabular } from '@/lib/template'
 import { buildSections, titleBlock, type SectionBlock } from '@/lib/sections'
 import type { TableEdit } from '@/lib/tables'
 import { normalizeLocale, type Locale } from '@/lib/i18n'
-import { DEMO, DEMO_SITE_URL, versionsFromRaw } from '@/lib/demo'
+import { DEMO, DEMO_SITE_URL, PUBLIC_SITE, fetchPublicVersions } from '@/lib/demo'
 import Header from '@/components/Header'
 import DemoBanner from '@/components/DemoBanner'
 import Sidebar from '@/components/Sidebar/Sidebar'
@@ -210,14 +210,18 @@ function App() {
     setStatus({ message: `loaded ${chosen.label} — ${chosen.files.length} files`, state: 'done' })
   }
 
-  // Demo mode: render a /versions payload the viewer pasted. Parsed in the
-  // browser; nothing leaves the page. Throws so the banner can show why.
-  function handleDemoJson(json: unknown) {
-    const data = versionsFromRaw(json)
+  // Demo mode: load a real published dataset by DOI, straight from the
+  // repository. Throws so the banner can show the reason.
+  async function handleDemoDoi(doi: string) {
+    const data = await fetchPublicVersions(doi, PUBLIC_SITE)
     setFetchError('')
     setVariableMap(new Map())
     setSectionText({})
     setTableEdits({})
+    // siteUrl is what tells fetchVariables to read from the live repository
+    // rather than the bundled fixture.
+    setSiteUrl(PUBLIC_SITE)
+    setPid(data[0]?.meta.doi || doi)
     applyVersionList(data)
     setUsingOwn(true)
   }
@@ -228,6 +232,8 @@ function App() {
     setSectionText({})
     setTableEdits({})
     setUsingOwn(false)
+    setSiteUrl(DEMO_SITE_URL)
+    setPid('demo')
     handleFetch('demo', undefined, DEMO_SITE_URL)
   }
 
@@ -332,7 +338,12 @@ function App() {
     <div className={styles.app}>
       <Header locale={locale} onLocaleChange={setLocale} />
       {DEMO && (
-        <DemoBanner onLoadJson={handleDemoJson} usingOwn={usingOwn} onReset={handleDemoReset} />
+        <DemoBanner
+          onLoadDoi={handleDemoDoi}
+          usingOwn={usingOwn}
+          loadedTitle={usingOwn ? meta?.title : undefined}
+          onReset={handleDemoReset}
+        />
       )}
       <div className={`${styles.layout} ${markdown ? '' : styles.layoutSetup}`}>
         <Sidebar

@@ -4,52 +4,44 @@ import { useState } from 'react'
 import styles from './DemoBanner.module.css'
 
 interface DemoBannerProps {
-  /** Hand back a raw Dataverse /versions payload for the app to render. */
-  onLoadJson: (json: unknown) => void
-  /** Set once the viewer has loaded their own dataset, so the copy stops
-   *  claiming the sample dataset is on screen. */
+  /** Load a published dataset by DOI. Rejects with a message to show. */
+  onLoadDoi: (doi: string) => Promise<void>
+  /** True once a real dataset is on screen rather than the bundled sample. */
   usingOwn: boolean
+  /** Title of the loaded dataset, for the banner text. */
+  loadedTitle?: string
   onReset: () => void
 }
 
-const CURL_HINT =
-  "curl 'https://borealisdata.ca/api/datasets/:persistentId/versions?persistentId=doi:10.5683/SP3/XXXXXX'"
+const EXAMPLE = 'doi:10.5683/SP3/ABCDEF'
 
 /**
  * Shown only in demo mode (the static GitHub Pages build).
  *
- * Two jobs: say plainly that this is a demo with no repository behind it, and
- * offer the one escape hatch a static build allows — paste the JSON from your
- * own Dataverse and the app renders it. That needs no server, no CORS and no
- * token, which is what makes the demo evaluable against real datasets rather
- * than only the bundled sample.
+ * Two jobs: say plainly that the sample dataset is invented, and let someone
+ * point the tool at a real published dataset by DOI. The fetch goes straight
+ * from the browser to the repository, which works because Dataverse serves its
+ * API with permissive CORS — and only for public datasets, since no token is
+ * involved.
  */
-export default function DemoBanner({ onLoadJson, usingOwn, onReset }: DemoBannerProps) {
+export default function DemoBanner({ onLoadDoi, usingOwn, loadedTitle, onReset }: DemoBannerProps) {
   const [open, setOpen] = useState(false)
-  const [text, setText] = useState('')
+  const [doi, setDoi] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  function handleLoad() {
-    const trimmed = text.trim()
-    if (!trimmed) {
-      setError('Paste the JSON response first.')
-      return
-    }
-    let parsed: unknown
+  async function handleLoad() {
+    if (loading) return
+    setError('')
+    setLoading(true)
     try {
-      parsed = JSON.parse(trimmed)
-    } catch (e) {
-      setError('That is not valid JSON. ' + String(e instanceof Error ? e.message : e))
-      return
-    }
-    try {
-      onLoadJson(parsed)
+      await onLoadDoi(doi)
       setOpen(false)
-      setText('')
-      setError('')
+      setDoi('')
     } catch (e) {
-      // versionsFromRaw throws a message aimed at the person pasting.
       setError(String(e instanceof Error ? e.message : e))
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -59,8 +51,8 @@ export default function DemoBanner({ onLoadJson, usingOwn, onReset }: DemoBanner
         <span className={styles.tag}>Demo</span>
         <span className={styles.text}>
           {usingOwn
-            ? 'Showing the dataset you pasted. Nothing is sent anywhere — it stays in this browser tab.'
-            : 'A sample dataset, bundled into the page. Saving back to a repository is disabled here.'}
+            ? `Showing ${loadedTitle ? `“${loadedTitle}”` : 'a published dataset'}, read live from Borealis.`
+            : 'A sample dataset — the data is invented and the dataset does not exist. Use the button to load a real published dataset instead.'}
         </span>
         <span className={styles.actions}>
           {usingOwn && (
@@ -68,8 +60,8 @@ export default function DemoBanner({ onLoadJson, usingOwn, onReset }: DemoBanner
               Back to the sample
             </button>
           )}
-          <button type="button" className={styles.btn} onClick={() => setOpen(true)}>
-            Use your own dataset
+          <button type="button" className={styles.btn} onClick={() => { setError(''); setOpen(true) }}>
+            Load a real dataset
           </button>
         </span>
       </div>
@@ -77,28 +69,30 @@ export default function DemoBanner({ onLoadJson, usingOwn, onReset }: DemoBanner
       {open && (
         <div className={styles.overlay} onClick={() => setOpen(false)}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalTitle}>Load your own dataset</div>
+            <div className={styles.modalTitle}>Load a published dataset</div>
             <p className={styles.modalBody}>
-              This page is static, so it cannot call your repository itself. Fetch the
-              dataset&apos;s versions yourself and paste the response below — it is parsed in
-              your browser and never uploaded.
-            </p>
-            <pre className={styles.code}>{CURL_HINT}</pre>
-            <p className={styles.modalNote}>
-              Any Dataverse works, not just Borealis. For an unpublished draft or restricted
-              files, add <code>-H &quot;X-Dataverse-key: YOUR_TOKEN&quot;</code>. Variable-level
-              metadata needs a separate request per file, so the Variable List section will be
-              empty for a pasted dataset.
+              Enter the DOI of any published Borealis dataset. The dataset page URL
+              works too.
             </p>
 
-            <textarea
-              className={styles.textarea}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder={'{"status":"OK","data":[ … ]}'}
+            <input
+              className={styles.input}
+              value={doi}
+              autoFocus
               spellCheck={false}
-              rows={8}
+              placeholder={EXAMPLE}
+              onChange={(e) => setDoi(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleLoad()
+                if (e.key === 'Escape') setOpen(false)
+              }}
+              aria-label="Dataset DOI"
             />
+
+            <p className={styles.modalNote}>
+              Published datasets only — drafts and restricted files need the tool
+              launched from the dataset page in Borealis.
+            </p>
 
             {error && <div className={styles.error}>{error}</div>}
 
@@ -110,8 +104,9 @@ export default function DemoBanner({ onLoadJson, usingOwn, onReset }: DemoBanner
                 type="button"
                 className={`${styles.btn} ${styles.btnAccent}`}
                 onClick={handleLoad}
+                disabled={loading || !doi.trim()}
               >
-                Load dataset
+                {loading ? 'Loading…' : 'Load dataset'}
               </button>
             </div>
           </div>

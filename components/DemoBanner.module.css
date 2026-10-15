@@ -100,7 +100,7 @@
 
 .modal {
   width: 100%;
-  max-width: 620px;
+  max-width: 520px;
   max-height: 90vh;
   overflow-y: auto;
   background: var(--surface);
@@ -125,6 +125,7 @@
 }
 
 .modalNote {
+  margin-top: 10px;
   font-size: 12.5px;
   line-height: 1.6;
   color: var(--muted);
@@ -140,36 +141,26 @@
   padding: 1px 4px;
 }
 
-.code {
-  font-family: var(--mono);
-  font-size: 11.5px;
-  line-height: 1.5;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 10px 12px;
-  margin: 0 0 12px;
-  overflow-x: auto;
-  color: var(--text);
-}
-
-.textarea {
+.input {
   width: 100%;
   box-sizing: border-box;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.5;
   padding: 10px 12px;
   border: 1px solid var(--border-mid);
   border-radius: var(--radius);
   background: var(--surface2);
   color: var(--text);
-  resize: vertical;
 }
 
-.textarea:focus {
+.input:focus {
   outline: none;
   border-color: var(--accent);
+}
+
+.input::placeholder {
+  color: var(--hint);
 }
 
 .error {

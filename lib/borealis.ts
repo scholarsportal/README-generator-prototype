@@ -1,5 +1,5 @@
 import type { DatasetMeta, DataFile, Variable, SignedUrls, VersionEntry } from './types'
-import { DEMO } from './demo'
+import { DEMO, DEMO_SITE_URL, fetchPublicVariables } from './demo'
 
 // NOTE: this is the fallback host used when no siteUrl is supplied. It points at
 // production Borealis, so a missing siteUrl during local development silently
@@ -74,6 +74,11 @@ export async function fetchVariables(
   // sees `if (undefined === '1')` and drops the branch together with the
   // fixture chunk. Going through the imported const leaves the chunk emitted.
   if (process.env.NEXT_PUBLIC_DEMO === '1') {
+    // A real public dataset is read straight from the repository; the bundled
+    // sample has no repository behind it, so it comes from the fixture.
+    if (siteUrl && siteUrl !== DEMO_SITE_URL) {
+      return fetchPublicVariables(fileId, siteUrl)
+    }
     return (await import('./demo/fixtures')).demoVariables(fileId)
   }
 
