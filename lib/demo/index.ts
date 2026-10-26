@@ -66,7 +66,7 @@ export function versionsFromRaw(json: unknown): VersionEntry[] {
 // Drafts and restricted files are therefore out of reach here, which is fine —
 // they are exactly the cases that need the real external tool.
 
-export const PUBLIC_SITE = 'https://borealisdata.ca'
+export const PUBLIC_SITE = 'https://readme-gen-proxy.sp-metrics.workers.dev'
 
 /**
  * Accept whatever someone pastes and turn it into a Dataverse persistentId.
@@ -114,7 +114,7 @@ export async function fetchPublicVersions(
   }
 
   const url =
-    `${siteUrl.replace(/\/$/, '')}/api/datasets/:persistentId/versions` +
+    `${siteUrl.replace(/\/$/, '')}/datasets/:persistentId/versions` +
     `?persistentId=${encodeURIComponent(pid)}`
 
   let res: Response
@@ -152,7 +152,7 @@ export async function fetchPublicVariables(
 ): Promise<Variable[] | null> {
   try {
     const res = await fetch(
-      `${siteUrl.replace(/\/$/, '')}/api/files/${fileId}/dataTables`
+      `${siteUrl.replace(/\/$/, '')}/files/${fileId}/dataTables`
     )
     if (!res.ok) return null
     return parseVariables(await res.json())

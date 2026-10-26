@@ -50,7 +50,7 @@
   font-family: var(--serif);
   font-size: 12.5px;
   padding: 5px 11px;
-  border: 1px solid var(--border-mid);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
@@ -65,13 +65,13 @@
 .btnAccent {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .btnAccent:hover {
   background: var(--accent-mid);
   border-color: var(--accent-mid);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .linkBtn {
@@ -148,7 +148,7 @@
   font-size: 13px;
   line-height: 1.5;
   padding: 10px 12px;
-  border: 1px solid var(--border-mid);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius);
   background: var(--surface2);
   color: var(--text);
@@ -179,4 +179,80 @@
   justify-content: flex-end;
   gap: 8px;
   margin-top: 16px;
+}
+
+/* ── public dataset loader (demo only) ──────────────────────────────────────
+   Appended by the DOI patch. Every custom property carries a fallback, so
+   these rules do not depend on which tokens the bar itself uses. Sizes stay at
+   or above the 11px floor set by the font-size pass. */
+
+.doiForm {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.doiLabel {
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.doiInput {
+  font: inherit;
+  font-size: 12px;
+  padding: 3px 7px;
+  min-width: 15rem;
+  flex: 1 1 15rem;
+  color: inherit;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border-control, #9e8f73);
+  border-radius: 4px;
+}
+
+.doiInput::placeholder {
+  color: var(--hint, #544f49);
+  opacity: 1;
+}
+
+.doiInput:disabled {
+  opacity: 0.6;
+}
+
+.doiBtn {
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  white-space: nowrap;
+  cursor: pointer;
+  color: var(--on-accent, #ffffff);
+  background: var(--accent, #6b2d5b);
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+
+.doiBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* The whole row wraps, so the message sits on its own line under the field. */
+.doiError {
+  flex-basis: 100%;
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: #8c1d18;
+}
+
+:global(html.dark) .doiError {
+  color: #ffb4ab;
+}
+
+@media (prefers-color-scheme: dark) {
+  :global(html:not(.light):not(.dark)) .doiError {
+    color: #ffb4ab;
+  }
 }

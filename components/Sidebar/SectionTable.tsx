@@ -147,6 +147,7 @@ export default function SectionTable({
                   value={newName}
                   autoFocus
                   placeholder="Column name"
+                  aria-label="Name for the new column"
                   onChange={(e) => setNewName(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') commitNewColumn()

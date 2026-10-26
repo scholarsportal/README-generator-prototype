@@ -284,8 +284,9 @@ export default function Sidebar({
         {/* Version selector */}
         {meta && versions.length > 0 && (
           <div>
-            <label className={styles.label}>Version</label>
+            <label className={styles.label} htmlFor="version-select">Version</label>
             <select
+              id="version-select"
               className={styles.versionSelect}
               value={version}
               onChange={(e) => handleVersionChange(e.target.value)}
@@ -347,6 +348,7 @@ export default function Sidebar({
                       checked={allFilesChecked}
                       onChange={(e) => onToggleAll(e.target.checked)}
                       title="Select all files"
+                      aria-label="Include every file in the file list"
                     />
                   </div>
                   <div className={styles.cbColHeader}>
@@ -356,6 +358,7 @@ export default function Sidebar({
                       checked={allVarsChecked}
                       onChange={(e) => toggleAllVars(e.target.checked)}
                       title="Select all variables"
+                      aria-label="Include variable metadata for every tabular file"
                     />
                   </div>
                   <span className={styles.fileNameCol} />
@@ -419,7 +422,12 @@ export default function Sidebar({
                 <span className={styles.rowActions}>
                   {expandControls(PINK_SECTIONS)}
                   <label className={styles.selectAllCheck}>
-                    <input type="checkbox" checked={allMinChecked} onChange={(e) => toggleAllMin(e.target.checked)} />
+                    <input
+                      type="checkbox"
+                      checked={allMinChecked}
+                      onChange={(e) => toggleAllMin(e.target.checked)}
+                      aria-label="Include every Minimum section"
+                    />
                     all
                   </label>
                 </span>
@@ -435,7 +443,12 @@ export default function Sidebar({
                 <span className={styles.rowActions}>
                   {expandControls(GREEN_SECTIONS)}
                   <label className={styles.selectAllCheck}>
-                    <input type="checkbox" checked={allEnhChecked} onChange={(e) => toggleAllEnh(e.target.checked)} />
+                    <input
+                      type="checkbox"
+                      checked={allEnhChecked}
+                      onChange={(e) => toggleAllEnh(e.target.checked)}
+                      aria-label="Include every Enhanced section"
+                    />
                     all
                   </label>
                 </span>
@@ -460,8 +473,14 @@ export default function Sidebar({
                     value={cs.title}
                     onChange={(e) => onUpdateCustomSection(cs.id, 'title', e.target.value)}
                     placeholder="Section title"
+                    aria-label="Custom section title"
                   />
-                  <button className={styles.removeBtn} onClick={() => onRemoveCustomSection(cs.id)} title="Remove">
+                  <button
+                    className={styles.removeBtn}
+                    onClick={() => onRemoveCustomSection(cs.id)}
+                    title="Remove"
+                    aria-label={`Remove custom section${cs.title ? `: ${cs.title}` : ''}`}
+                  >
                     <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                       <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                     </svg>
@@ -472,6 +491,7 @@ export default function Sidebar({
                   value={cs.content}
                   onChange={(e) => onUpdateCustomSection(cs.id, 'content', e.target.value)}
                   placeholder="Section content…"
+                  aria-label={`Content of custom section${cs.title ? `: ${cs.title}` : ''}`}
                   rows={3}
                 />
               </div>
@@ -606,6 +626,7 @@ function SectionRow({
                 value={value}
                 placeholder={block.placeholder}
                 onChange={(e) => onTextChange(e.target.value)}
+                aria-label={`${label} content`}
                 rows={Math.min(12, Math.max(3, value.split('\n').length + 1))}
               />
               <div className={styles.sectionEditorFoot}>
@@ -675,11 +696,21 @@ function FileItem({ file, depth, checked, varChecked, onToggleFile, onToggleVari
   return (
     <div className={`${styles.fileRow} ${file.restricted ? styles.fileRowRestricted : ''}`}>
       <div className={styles.cbCol}>
-        <input type="checkbox" checked={checked} onChange={(e) => onToggleFile(file.id, e.target.checked)} />
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onToggleFile(file.id, e.target.checked)}
+          aria-label={`Include ${file.name} in the file list`}
+        />
       </div>
       <div className={styles.cbCol}>
         {tabular
-          ? <input type="checkbox" checked={varChecked} onChange={(e) => onToggleVariable(file.id, e.target.checked)} />
+          ? <input
+              type="checkbox"
+              checked={varChecked}
+              onChange={(e) => onToggleVariable(file.id, e.target.checked)}
+              aria-label={`Include variable metadata for ${file.name}`}
+            />
           : <span className={styles.cbPlaceholder} />
         }
       </div>
@@ -754,6 +785,7 @@ function FolderNode({ name, fullPath, node, files, selectedIds, variableIds, onT
             type="checkbox"
             checked={allChecked}
             onChange={(e) => allFileIds.forEach((id) => onToggleFile(id, e.target.checked))}
+            aria-label={`Include every file in ${fullPath}`}
           />
         </div>
         <div className={styles.cbCol}>
@@ -762,6 +794,7 @@ function FolderNode({ name, fullPath, node, files, selectedIds, variableIds, onT
                 type="checkbox"
                 checked={allVarChecked}
                 onChange={(e) => allTabularIds.forEach((id) => onToggleVariable(id, e.target.checked))}
+                aria-label={`Include variable metadata for every tabular file in ${fullPath}`}
               />
             : <span className={styles.cbPlaceholder} />
           }
@@ -770,7 +803,12 @@ function FolderNode({ name, fullPath, node, files, selectedIds, variableIds, onT
         {Array.from({ length: depth }, (_, i) => (
           <span key={i} className={styles.rail} />
         ))}
-        <button className={styles.folderToggle} onClick={() => setOpen((o) => !o)}>
+        <button
+          className={styles.folderToggle}
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          aria-label={`${open ? 'Collapse' : 'Expand'} ${fullPath}`}
+        >
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform .15s' }}>
             <path d="M3 2L7 5L3 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>

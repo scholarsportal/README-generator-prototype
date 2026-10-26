@@ -43,6 +43,7 @@ export default function Viewer({ markdown, onChange, tab, onTabChange, onCopy, o
             className={`${styles.tab} ${tab === 'dual' ? styles.active : ''}`}
             onClick={() => onTabChange('dual')}
             title="Split view"
+            aria-label="Split view"
           >
             <SplitIcon />
           </button>
@@ -264,6 +265,7 @@ function AutoGrowTextarea({
       className={className}
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      aria-label="README markdown"
       spellCheck={false}
     />
   )

@@ -19,7 +19,7 @@
 
 .tabs {
   display: flex;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-radius: 5px;
   overflow: hidden;
   flex-shrink: 0;
@@ -38,7 +38,7 @@
   letter-spacing: 0.04em;
   padding: 4px 10px;
   background: var(--surface2);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius);
   color: var(--text);
   cursor: pointer;
@@ -74,7 +74,7 @@
   letter-spacing: 0.04em;
   padding: 4px 10px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-left: none;
   color: var(--hint);
   cursor: pointer;

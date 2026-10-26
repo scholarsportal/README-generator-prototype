@@ -46,7 +46,7 @@
   font-size: 12px;
   cursor: pointer;
   border-radius: var(--radius);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   background: var(--surface2);
   color: var(--text);
   transition: all 0.15s;
@@ -58,7 +58,7 @@
 .btnAccent {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   font-weight: 500;
 }
 .btnAccent:hover { background: var(--accent-mid); border-color: var(--accent-mid); }
@@ -66,7 +66,7 @@
 /* ── theme segmented button ── */
 .themeSegment {
   display: flex;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-radius: var(--radius);
   overflow: hidden;
   flex-shrink: 0;

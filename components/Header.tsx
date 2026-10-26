@@ -71,6 +71,8 @@ export default function Header({ locale = 'en', onLocaleChange }: HeaderProps) {
             className={`${styles.themeBtn} ${!dark ? styles.themeBtnActive : ''}`}
             onClick={() => setDark(false)}
             title="Light mode"
+            aria-label="Light mode"
+            aria-pressed={!dark}
           >
             <SunIcon />
           </button>
@@ -78,6 +80,8 @@ export default function Header({ locale = 'en', onLocaleChange }: HeaderProps) {
             className={`${styles.themeBtn} ${dark ? styles.themeBtnActive : ''}`}
             onClick={() => setDark(true)}
             title="Dark mode"
+            aria-label="Dark mode"
+            aria-pressed={!!dark}
           >
             <MoonIcon />
           </button>

@@ -95,8 +95,9 @@ export default function SaveArea({ onSave, hasSignedUrl, existingFiles = [], dem
             </p>
 
             <div className={styles.tokenRow}>
-              <label className={styles.tokenLabel}>Filename</label>
+              <label className={styles.tokenLabel} htmlFor="save-filename">Filename</label>
               <input
+                id="save-filename"
                 type="text"
                 className={styles.input}
                 value={filename}
@@ -107,9 +108,10 @@ export default function SaveArea({ onSave, hasSignedUrl, existingFiles = [], dem
 
             {!hasSignedUrl && (
               <div className={styles.tokenRow}>
-                <label className={styles.tokenLabel}>Borealis API token</label>
+                <label className={styles.tokenLabel} htmlFor="save-token">Borealis API token</label>
                 <div className={styles.tokenInputRow}>
                   <input
+                    id="save-token"
                     type={show ? 'text' : 'password'}
                     className={styles.input}
                     value={token}
@@ -117,7 +119,12 @@ export default function SaveArea({ onSave, hasSignedUrl, existingFiles = [], dem
                     placeholder="Required to save"
                     autoComplete="off"
                   />
-                  <button className={styles.eyeBtn} onClick={() => setShow((s) => !s)} title="Show/hide token">
+                  <button
+                    className={styles.eyeBtn}
+                    onClick={() => setShow((s) => !s)}
+                    title="Show/hide token"
+                    aria-label={show ? 'Hide token' : 'Show token'}
+                  >
                     <EyeIcon crossed={show} />
                   </button>
                 </div>
