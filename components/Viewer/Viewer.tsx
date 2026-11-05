@@ -266,6 +266,7 @@ function AutoGrowTextarea({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       aria-label="README markdown"
+      readOnly
       spellCheck={false}
     />
   )

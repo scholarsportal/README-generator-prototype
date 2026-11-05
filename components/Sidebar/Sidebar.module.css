@@ -979,3 +979,27 @@
   box-shadow: none;
   border-color: transparent;
 }
+
+/* ── Generate row ─────────────────────────────────────────────────────────────
+   Appended by the reset-edits patch. Generate and Reset edits share one row,
+   with Generate taking whatever is left. The row carries the top margin and
+   the button's own is zeroed, so the two line up; if the gap above the pair
+   looks wrong, this margin is the one to change. */
+
+.generateRow {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.generateRow .btnGenerate {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-top: 0;
+}
+
+.resetEditsBtn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}

@@ -38,6 +38,10 @@ interface SidebarProps {
   onVersionChange: (v: string) => void
   onGenerate: () => void
   generating: boolean
+  /** Drops everything authored and regenerates from the dataset's own content. */
+  onResetEdits: () => void
+  /** True when the README on screen was generated with edits in place. */
+  editsInReadme: boolean
   error: string
   /** Each section's content as it will appear, keyed by section. */
   sectionBlocks: Partial<Record<Section, SectionBlock>>
@@ -61,7 +65,7 @@ export default function Sidebar({
   mode, onModeChange,
   customSections, onAddCustomSection, onRemoveCustomSection, onUpdateCustomSection,
   hasReadme, version, versions, onVersionChange,
-  onGenerate, generating,
+  onGenerate, generating, onResetEdits, editsInReadme,
   error,
   sectionBlocks, sectionText, onSectionTextChange, onSectionReset, wide,
   tableEdits, onTableEditChange, onNeedVariables,
@@ -196,6 +200,7 @@ export default function Sidebar({
   }
 
   const [pendingVersion, setPendingVersion] = useState<string | null>(null)
+  const [confirmReset, setConfirmReset] = useState(false)
 
   function handleVersionChange(v: string) {
     if (hasReadme) {
@@ -249,6 +254,30 @@ export default function Sidebar({
                 onClick={() => { onVersionChange(pendingVersion); setPendingVersion(null); }}
               >
                 Proceed
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Reset edits confirmation modal — same shape as the version one */}
+      {confirmReset && (
+        <div className={styles.versionModalOverlay} onClick={() => setConfirmReset(false)}>
+          <div className={styles.versionModal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.versionModalTitle}>Reset all edits?</div>
+            <p className={styles.versionModalBody}>
+              Everything you typed is removed — section text, the columns and cells added to
+              the Files and Variables tables, and your custom sections — and the README is
+              generated again from the dataset&rsquo;s own content. Your file and section
+              choices are kept. This cannot be undone, so download the README you have now
+              if you want to keep it.
+            </p>
+            <div className={styles.versionModalActions}>
+              <button className={styles.btn} onClick={() => setConfirmReset(false)}>Cancel</button>
+              <button
+                className={`${styles.btn} ${styles.btnAccent}`}
+                onClick={() => { onResetEdits(); setConfirmReset(false); }}
+              >
+                Reset and regenerate
               </button>
             </div>
           </div>
@@ -516,13 +545,26 @@ export default function Sidebar({
         )}
 
         {meta && (
-          <button
-            className={`${styles.btn} ${styles.btnAccent} ${styles.btnGenerate}`}
-            onClick={onGenerate}
-            disabled={!canGenerate}
-          >
-            {generating ? 'Generating…' : 'Generate README'}
-          </button>
+          <div className={styles.generateRow}>
+            <button
+              className={`${styles.btn} ${styles.btnAccent} ${styles.btnGenerate}`}
+              onClick={onGenerate}
+              disabled={!canGenerate}
+            >
+              {generating ? 'Generating…' : 'Generate README'}
+            </button>
+            {editsInReadme && (
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.resetEditsBtn}`}
+                onClick={() => setConfirmReset(true)}
+                disabled={generating}
+                title="Remove your edits and generate again from the dataset's own content"
+              >
+                Reset edits
+              </button>
+            )}
+          </div>
         )}
 
       </div>

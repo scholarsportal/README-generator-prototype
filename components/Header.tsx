@@ -4,6 +4,13 @@ import { useState, useEffect } from 'react'
 import type { Locale } from '@/lib/i18n'
 import styles from './Header.module.css'
 
+/**
+ * Where the Feedback button points. Empty until the form exists, in which case
+ * the button renders disabled rather than linking nowhere. Paste the form's URL
+ * here and it becomes a live link opening in a new tab.
+ */
+const FEEDBACK_URL = ''
+
 interface HeaderProps {
   locale?: Locale
   onLocaleChange?: (locale: Locale) => void
@@ -86,6 +93,28 @@ export default function Header({ locale = 'en', onLocaleChange }: HeaderProps) {
             <MoonIcon />
           </button>
         </div>
+        <div className={styles.themeSegment}>
+          {FEEDBACK_URL ? (
+            <a
+              className={styles.themeBtn}
+              href={FEEDBACK_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Open the feedback form in a new tab"
+            >
+              Feedback <ExternalIcon />
+            </a>
+          ) : (
+            <button
+              type="button"
+              className={styles.themeBtn}
+              disabled
+              title="Feedback form coming soon"
+            >
+              Feedback Form
+            </button>
+          )}
+        </div>
       </div>
     </header>
   )
@@ -139,6 +168,21 @@ function MoonIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
       <path d="M11.5 8.5A5 5 0 0 1 5.5 2.5a5 5 0 1 0 6 6z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
+}
+
+// ── External link icon ────────────────────────────────────────────────────────
+// Marks the Feedback button as leaving the app, which matters more than usual
+// here: the tool often runs in a window Dataverse opened.
+
+function ExternalIcon() {
+  return (
+    <svg width="9" height="9" viewBox="0 0 10 10" fill="none" aria-hidden="true"
+      style={{ display: 'inline-block', marginLeft: 4, verticalAlign: '-1px' }}>
+      <path d="M3.5 1H1V9H9V6.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6 1H9V4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 1L4.5 5.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
     </svg>
   )
 }

@@ -143,8 +143,10 @@ export const GREEN_SECTIONS: Section[] = Object.entries(SECTION_META)
 
 export const ALL_SECTIONS: Section[] = [...PINK_SECTIONS, ...GREEN_SECTIONS]
 
-// Default for advanced mode: pink checked, green unchecked
-export const DEFAULT_SECTIONS: Section[] = PINK_SECTIONS
+// Default for advanced mode: every pink section, plus the three green sections
+// that come from the dataset itself — version history, the variable dictionary
+// and the file listing — rather than from something the depositor has to write.
+export const DEFAULT_SECTIONS: Section[] = [...PINK_SECTIONS, 'version', 'variables', 'files']
 
 // ── Generation mode ───────────────────────────────────────────────────────────
 

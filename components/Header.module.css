@@ -180,3 +180,20 @@
   font-size: 12px;
   line-height: 1;
 }
+
+/* ── Feedback link ────────────────────────────────────────────────────────────
+   Appended by the feedback patch. The Feedback control wears .themeBtn so it
+   matches the language and theme buttons; as an <a> it needs the colour and
+   text-decoration that class never needed while it was only on buttons. */
+
+a.themeBtn {
+  display: inline-flex;
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
+}
+
+.themeBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}

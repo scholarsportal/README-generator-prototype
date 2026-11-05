@@ -1,6 +1,6 @@
 'use client'
 import { Suspense } from 'react'
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import type { DatasetMeta, DataFile, Section, Tab, Status, SignedUrls, GenerationMode, CustomSection, VersionEntry } from '@/lib/types'
 import { PINK_SECTIONS, DEFAULT_SECTIONS } from '@/lib/types'
@@ -10,6 +10,8 @@ import { buildSections, titleBlock, type SectionBlock } from '@/lib/sections'
 import type { TableEdit } from '@/lib/tables'
 import { normalizeLocale, type Locale } from '@/lib/i18n'
 import { DEMO, DEMO_SITE_URL, PUBLIC_SITE, fetchPublicVersions } from '@/lib/demo'
+import { saveDraft, loadDraft, clearDraft, hasEdits } from '@/lib/draft'
+import { readmeFilename } from '@/lib/filename'
 import Header from '@/components/Header'
 import DemoBanner from '@/components/DemoBanner'
 import Sidebar from '@/components/Sidebar/Sidebar'
@@ -37,7 +39,7 @@ function App() {
   const [versions, setVersions]       = useState<VersionEntry[]>([])
   const [fetching, setFetching]     = useState(false)
   const [fetchError, setFetchError] = useState('')
-  const [mode, setMode]             = useState<GenerationMode>('basic')
+  const [mode, setMode]             = useState<GenerationMode>('advanced')
   const [sections, setSections]     = useState<Section[]>(DEFAULT_SECTIONS)
   const [customSections, setCustomSections] = useState<CustomSection[]>([])
   const [markdown, setMarkdown]     = useState('')
@@ -63,12 +65,59 @@ function App() {
   // Demo mode only: true once the viewer has pasted their own dataset, so the
   // banner can say which one is on screen.
   const [usingOwn, setUsingOwn]     = useState(false)
+  // Whether the one-shot draft restore has run. The save effect waits for it,
+  // or it would overwrite a stored draft with the freshly fetched empty state.
+  const [draftChecked, setDraftChecked] = useState(false)
+  // Strict Mode invokes the launch effect twice in development; this keeps the
+  // fetch itself to once.
+  const didInit = useRef(false)
+  // True when the README on screen was generated with edits in place. Taken at
+  // generate time rather than derived from the edits as they stand, so typing
+  // into a section does not offer to reset a README that never contained it.
+  const [editsInReadme, setEditsInReadme] = useState(false)
 
   // Keep <html lang> in step so screen readers, hyphenation and spellcheck
   // use the right language.
   useEffect(() => {
     document.documentElement.lang = locale
   }, [locale])
+
+  // ── Draft kept across a reload (sessionStorage, so not across a close) ──────
+
+  // Debounced, so typing a section does not write on every keystroke.
+  useEffect(() => {
+    if (DEMO || !draftChecked || !meta || !pid) return
+    const timer = setTimeout(() => {
+      saveDraft({
+        pid,
+        version,
+        mode,
+        sections,
+        sectionText,
+        customSections,
+        tableEdits,
+        selectedIds: Array.from(selectedIds),
+        variableIds: Array.from(variableIds),
+        markdown,
+      })
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [draftChecked, meta, pid, version, mode, sections, sectionText, customSections,
+      tableEdits, selectedIds, variableIds, markdown])
+
+  // The browser's own prompt, which cannot be given custom text and cannot tell
+  // a reload from a close — so it also appears on refresh, where the work is in
+  // fact kept. The close is the case worth guarding.
+  useEffect(() => {
+    if (DEMO) return
+    if (!hasEdits({ sectionText, customSections, tableEdits, markdown })) return
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [sectionText, customSections, tableEdits, markdown])
 
   useEffect(() => {
     async function init() {
@@ -115,7 +164,13 @@ function App() {
       setLaunched(false)
       setStatus({ message: 'ready', state: 'idle' })
     }
-    init()
+    // Strict Mode runs this effect twice in development. Without the guard the
+    // launch fetch runs twice, and the second one lands after the draft has
+    // been put back and wipes the selections and the markdown again.
+    if (!didInit.current) {
+      didInit.current = true
+      init()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -172,6 +227,7 @@ function App() {
     setSelectedIds(new Set(entry.files.filter((f) => !f.restricted).map((f) => f.id)))
     setVariableIds(new Set(entry.files.filter((f) => !f.restricted && isTabular(f)).map((f) => f.id)))
     setMarkdown('')
+    setEditsInReadme(false)
   }
 
   async function handleFetch(resolvedPid: string, resolvedSigned?: SignedUrls, resolvedSiteUrl?: string, resolvedVersion?: string) {
@@ -188,7 +244,7 @@ function App() {
     const site = resolvedSiteUrl || siteUrl || undefined
     try {
       const data = await fetchVersions(resolvedPid, resolvedToken, site, resolvedSigned)
-      applyVersionList(data, resolvedVersion)
+      applyVersionList(data, resolvedVersion, resolvedPid)
     } catch (e) {
       setFetchError(String(e))
       setStatus({ message: 'error fetching dataset', state: 'error' })
@@ -197,9 +253,37 @@ function App() {
     }
   }
 
+  // Put work kept from before a reload back on top of what the fetch just
+  // applied. Called from applyVersionList rather than from an effect, because
+  // applyVersion overwrites the selections and clears the markdown: running
+  // after every fetch is what makes this survive a second fetch, which is
+  // exactly what Strict Mode does to the launch effect in development.
+  function restoreDraft(draftPid: string, draftVersion: string): boolean {
+    if (DEMO || !draftPid) return false
+    const draft = loadDraft(draftPid, draftVersion)
+    if (!draft) return false
+    setMode(draft.mode)
+    setSections(draft.sections)
+    setSectionText(draft.sectionText)
+    setCustomSections(draft.customSections)
+    setTableEdits(draft.tableEdits)
+    setSelectedIds(new Set(draft.selectedIds))
+    setVariableIds(new Set(draft.variableIds))
+    setMarkdown(draft.markdown)
+    // A restored README was generated before the reload, so whether it carries
+    // edits is read back off the draft rather than assumed.
+    setEditsInReadme(!!draft.markdown && hasEdits({
+      sectionText: draft.sectionText,
+      customSections: draft.customSections,
+      tableEdits: draft.tableEdits,
+      markdown: '',
+    }))
+    return true
+  }
+
   // Shared by the normal fetch and, in demo mode, by a dataset pasted in by the
   // viewer: both end up with the same VersionEntry[] to show.
-  function applyVersionList(data: VersionEntry[], resolvedVersion?: string) {
+  function applyVersionList(data: VersionEntry[], resolvedVersion?: string, resolvedPid?: string) {
     if (!data.length) throw new Error('No versions returned for this dataset.')
     setVersions(data)
     // Dataverse returns newest-first, so index 0 is the draft when one exists
@@ -207,7 +291,13 @@ function App() {
     const chosen = (resolvedVersion && data.find((d) => d.value === resolvedVersion)) || data[0]
     setVersion(chosen.value)
     applyVersion(chosen)
-    setStatus({ message: `loaded ${chosen.label} — ${chosen.files.length} files`, state: 'done' })
+    // pid comes in from the caller: setPid was called moments ago and the state
+    // has not updated yet, so reading pid here would see the previous value.
+    const restored = restoreDraft(resolvedPid || pid, chosen.value)
+    setDraftChecked(true)
+    setStatus(restored
+      ? { message: 'restored your unsaved work from before the reload', state: 'done' }
+      : { message: `loaded ${chosen.label} — ${chosen.files.length} files`, state: 'done' })
   }
 
   // Demo mode: load a real published dataset by DOI, straight from the
@@ -280,8 +370,18 @@ function App() {
   const handleUpdateCustomSection = useCallback((id: string, field: 'title' | 'content', value: string) => {
     setCustomSections((prev) => prev.map((s) => s.id === id ? { ...s, [field]: value } : s))
   }, [])
-  async function handleGenerate() {
+  /**
+   * withoutEdits is Reset edits: drop everything authored and regenerate from
+   * the dataset's own content, in one step.
+   *
+   * The cleared values go straight into generateReadme rather than being set
+   * first and read back. State set in here is not visible until the next
+   * render, so clearing sectionText and then reading it would regenerate the
+   * very text it was meant to remove.
+   */
+  async function handleGenerate(opts?: { withoutEdits?: boolean }) {
     if (!meta) return
+    const plain = opts?.withoutEdits === true
     setGenerating(true)
     const activeSections: Section[] = mode === 'basic' ? PINK_SECTIONS : sections
     const selectedFiles = files.filter((f) => selectedIds.has(f.id))
@@ -296,23 +396,36 @@ function App() {
     }
     setVariableMap(vars)
     setStatus({ message: 'generating README…', state: 'active' })
-    const md = generateReadme({ meta, selectedFiles, allFiles: files, sections: activeSections, variableMap: vars, customSections: mode === 'advanced' ? customSections : [], locale, overrides: sectionText, tableEdits })
+    const usedCustom = plain ? [] : (mode === 'advanced' ? customSections : [])
+    const usedText = plain ? {} : sectionText
+    const usedTables = plain ? {} : tableEdits
+    const md = generateReadme({ meta, selectedFiles, allFiles: files, sections: activeSections, variableMap: vars, customSections: usedCustom, locale, overrides: usedText, tableEdits: usedTables })
+    if (plain) {
+      setSectionText({})
+      setTableEdits({})
+      setCustomSections([])
+    }
     setMarkdown(md)
-    setStatus({ message: `README generated (${mode} mode)`, state: 'done' })
+    // Decided here, so the button follows the README rather than the sidebar.
+    setEditsInReadme(!plain && hasEdits({ sectionText, customSections, tableEdits, markdown: '' }))
+    setStatus(plain
+      ? { message: 'README regenerated without your edits', state: 'done' }
+      : { message: `README generated (${mode} mode)`, state: 'done' })
     setGenerating(false)
   }
   function handleCopy() { navigator.clipboard.writeText(markdown) }
   function handleDownload(ext: 'md' | 'txt') {
-    const name = (meta?.title || 'README').replace(/[^a-z0-9]/gi, '_').slice(0, 40)
     const mimeType = ext === 'md' ? 'text/markdown' : 'text/plain'
     const blob = new Blob([markdown], { type: mimeType })
-    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `README_${name}.${ext}` })
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: readmeFilename(meta?.title, ext) })
     a.click()
   }
   async function handleSave(saveToken: string, filename: string) {
     setStatus({ message: 'uploading README to Borealis…', state: 'active' })
     try {
       await saveReadme(pid, saveToken || token, markdown, signedUrls?.addFile, filename, siteUrl || undefined)
+      // No longer unsaved, so the draft would only be misleading on a reload.
+      clearDraft()
       setStatus({ message: 'README saved to dataset ✓', state: 'done' })
     } catch (e) {
       setStatus({ message: String(e), state: 'error' })
@@ -368,6 +481,8 @@ function App() {
           onUpdateCustomSection={handleUpdateCustomSection}
           onGenerate={handleGenerate}
           generating={generating}
+          onResetEdits={() => { void handleGenerate({ withoutEdits: true }) }}
+          editsInReadme={editsInReadme}
           hasReadme={!!markdown}
           version={version}
           versions={versions.map((v) => ({ label: v.label, value: v.value }))}
@@ -396,6 +511,7 @@ function App() {
                 onSave={handleSave}
                 hasSignedUrl={!!signedUrls?.addFile}
                 existingFiles={files.map((f) => f.name)}
+                datasetTitle={meta?.title}
                 demo={DEMO}
               />
             }

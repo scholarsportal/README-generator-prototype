@@ -137,3 +137,24 @@
   flex-shrink: 0;
 }
 .eyeBtn:hover { border-color: var(--border-mid); color: var(--text); }
+
+/* ── Long filenames ───────────────────────────────────────────────────────────
+   Appended by the hover-help patch. A title-derived filename can be far longer
+   than README.md, so the confirmation line has to be able to break mid-name:
+   a flex item will not shrink below its content without min-width: 0, and a
+   long unbroken filename has no space to wrap at. The checkbox aligns to the
+   first line rather than the middle of a block of text. */
+
+.checkRow {
+  align-items: flex-start;
+}
+
+.checkText {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.checkFile {
+  font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  overflow-wrap: anywhere;
+}

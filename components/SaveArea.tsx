@@ -1,26 +1,35 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { readmeFilename } from '@/lib/filename'
 import styles from './SaveArea.module.css'
 
 interface SaveAreaProps {
   onSave: (token: string, filename: string) => Promise<void>
   hasSignedUrl: boolean
   existingFiles?: string[]
+  /** Drives the default filename: README_for_<Dataset_Title>.md */
+  datasetTitle?: string
   /** Static demo build: there is no repository to write to, so the control is
    *  shown disabled rather than hidden — people should see that the real tool
    *  can save back. */
   demo?: boolean
 }
 
-function getDefaultFilename(existingFiles: string[]): string {
-  if (!existingFiles.includes('README.md')) return 'README.md'
+/**
+ * README_for_<Dataset_Title>.md, with _2, _3 … when the dataset already holds
+ * that name. Built from the same helper the download uses, so the two agree.
+ */
+function getDefaultFilename(existingFiles: string[], datasetTitle?: string): string {
+  const base = readmeFilename(datasetTitle, 'md')
+  if (!existingFiles.includes(base)) return base
+  const stem = base.slice(0, -'.md'.length)
   let n = 2
-  while (existingFiles.includes(`README_${n}.md`)) n++
-  return `README_${n}.md`
+  while (existingFiles.includes(`${stem}_${n}.md`)) n++
+  return `${stem}_${n}.md`
 }
 
-export default function SaveArea({ onSave, hasSignedUrl, existingFiles = [], demo = false }: SaveAreaProps) {
+export default function SaveArea({ onSave, hasSignedUrl, existingFiles = [], datasetTitle, demo = false }: SaveAreaProps) {
   const [showModal, setShowModal] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
   const [filename, setFilename]   = useState('README.md')
@@ -33,7 +42,7 @@ export default function SaveArea({ onSave, hasSignedUrl, existingFiles = [], dem
   function openModal() {
     setConfirmed(false)
     setError('')
-    setFilename(getDefaultFilename(existingFiles))
+    setFilename(getDefaultFilename(existingFiles, datasetTitle))
     setShowModal(true)
   }
 
@@ -139,7 +148,11 @@ export default function SaveArea({ onSave, hasSignedUrl, existingFiles = [], dem
                 checked={confirmed}
                 onChange={(e) => setConfirmed(e.target.checked)}
               />
-              I understand and want to save {filename || 'README.md'} to this dataset
+              <span className={styles.checkText}>
+                I understand and want to save{' '}
+                <span className={styles.checkFile}>{filename || 'README.md'}</span>{' '}
+                to this dataset
+              </span>
             </label>
 
             <div className={styles.modalActions}>
