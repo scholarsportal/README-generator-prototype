@@ -79,7 +79,7 @@ export default function SaveArea({ onSave, hasSignedUrl, existingFiles = [], dat
         disabled
         title="Not available in the demo — this build has no repository behind it. Use Export to download the README."
       >
-        Add README
+        Save to Dataset
       </button>
     )
   }
@@ -91,16 +91,21 @@ export default function SaveArea({ onSave, hasSignedUrl, existingFiles = [], dat
         onClick={openModal}
         disabled={saved}
       >
-        {saved ? 'Saved!' : 'Add README'}
+        {saved ? 'Saved!' : 'Save to Dataset'}
       </button>
 
       {showModal && (
         <div className={styles.overlay} onClick={() => setShowModal(false)}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalTitle}>Add README to dataset?</div>
+            <div className={styles.modalTitle}>Save README to dataset?</div>
             <p className={styles.modalBody}>
               This will upload a README file to your dataset.
               Note: this saves a file, not dataset metadata.
+            </p>
+            <p className={styles.modalBody}>
+              Your edits are saved into this file only. If you generate a README again for
+              a later version of the dataset, it starts from the dataset&rsquo;s own
+              metadata and these changes will not appear in it.
             </p>
 
             <div className={styles.tokenRow}>
@@ -164,7 +169,7 @@ export default function SaveArea({ onSave, hasSignedUrl, existingFiles = [], dat
                 onClick={handleSave}
                 disabled={!confirmed || saving || (!hasSignedUrl && !token.trim())}
               >
-                {saving ? 'Saving…' : 'Yes, add README'}
+                {saving ? 'Saving…' : 'Yes, save to dataset'}
               </button>
             </div>
           </div>

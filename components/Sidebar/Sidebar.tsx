@@ -313,7 +313,7 @@ export default function Sidebar({
         {/* Version selector */}
         {meta && versions.length > 0 && (
           <div>
-            <label className={styles.label} htmlFor="version-select">Version</label>
+            <label className={styles.label} htmlFor="version-select">Dataset Version</label>
             <select
               id="version-select"
               className={styles.versionSelect}

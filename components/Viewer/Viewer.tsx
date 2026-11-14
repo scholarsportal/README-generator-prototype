@@ -5,6 +5,16 @@ import { marked } from 'marked'
 import type { Tab } from '@/lib/types'
 import styles from './Viewer.module.css'
 
+/** Split view: the share of the width the preview takes, as a percentage. */
+const DEFAULT_SPLIT = 50
+const MIN_SPLIT = 20
+const MAX_SPLIT = 80
+const SPLIT_KEY = 'readme-split'
+
+function clampSplit(pct: number): number {
+  return Math.min(MAX_SPLIT, Math.max(MIN_SPLIT, pct))
+}
+
 interface ViewerProps {
   markdown: string
   onChange: (md: string) => void
@@ -19,6 +29,73 @@ interface ViewerProps {
 
 export default function Viewer({ markdown, onChange, tab, onTabChange, onCopy, onDownload, saveArea, title }: ViewerProps) {
   const html = markdown ? (marked.parse(markdown) as string) : ''
+
+  // One number decides the split-view layout: the preview's share of the width.
+  // The editor takes the rest, so dragging left makes the editor the bigger pane.
+  const [split, setSplit] = useState(DEFAULT_SPLIT)
+  const [dragging, setDragging] = useState(false)
+  const dualRef = useRef<HTMLDivElement>(null)
+
+  // Read on mount, not in the initial state: this component is server rendered
+  // first and there is no localStorage there.
+  useEffect(() => {
+    try {
+      const saved = Number(window.localStorage.getItem(SPLIT_KEY))
+      if (Number.isFinite(saved) && saved >= MIN_SPLIT && saved <= MAX_SPLIT) {
+        setSplit(saved)
+      }
+    } catch {
+      /* storage blocked or unavailable — the default is fine */
+    }
+  }, [])
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SPLIT_KEY, String(Math.round(split)))
+    } catch {
+      /* as above */
+    }
+  }, [split])
+
+  useEffect(() => {
+    if (!dragging) return
+
+    function onMove(e: PointerEvent) {
+      const box = dualRef.current?.getBoundingClientRect()
+      if (!box || !box.width) return
+      setSplit(clampSplit(((e.clientX - box.left) / box.width) * 100))
+    }
+    function stop() {
+      setDragging(false)
+    }
+
+    document.addEventListener('pointermove', onMove)
+    document.addEventListener('pointerup', stop)
+    document.addEventListener('pointercancel', stop)
+    // Without these the cursor flickers to a text caret over the panes and the
+    // drag selects whatever it passes over.
+    const { cursor, userSelect } = document.body.style
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+
+    return () => {
+      document.removeEventListener('pointermove', onMove)
+      document.removeEventListener('pointerup', stop)
+      document.removeEventListener('pointercancel', stop)
+      document.body.style.cursor = cursor
+      document.body.style.userSelect = userSelect
+    }
+  }, [dragging])
+
+  function onDividerKeyDown(e: React.KeyboardEvent) {
+    const step = e.shiftKey ? 10 : 2
+    if (e.key === 'ArrowLeft') setSplit((s) => clampSplit(s - step))
+    else if (e.key === 'ArrowRight') setSplit((s) => clampSplit(s + step))
+    else if (e.key === 'Home') setSplit(MIN_SPLIT)
+    else if (e.key === 'End') setSplit(MAX_SPLIT)
+    else return
+    e.preventDefault()
+  }
 
   return (
     <div className={styles.wrapper}>
@@ -79,13 +156,34 @@ export default function Viewer({ markdown, onChange, tab, onTabChange, onCopy, o
       )}
 
       {markdown && tab === 'dual' && (
-        <div className={styles.dual}>
+        <div
+          className={styles.dual}
+          ref={dualRef}
+          style={{ gridTemplateColumns: `minmax(0, ${split}fr) 9px minmax(0, ${100 - split}fr)` }}
+        >
           <div className={styles.dualPreview}>
             <div
               className={styles.preview}
               dangerouslySetInnerHTML={{ __html: html }}
             />
           </div>
+          <div
+            className={`${styles.resizer} ${dragging ? styles.resizerActive : ''}`}
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize the preview and editor panes"
+            aria-valuenow={Math.round(split)}
+            aria-valuemin={MIN_SPLIT}
+            aria-valuemax={MAX_SPLIT}
+            tabIndex={0}
+            title="Drag to resize — double-click to even up"
+            onPointerDown={(e) => {
+              e.preventDefault()
+              setDragging(true)
+            }}
+            onDoubleClick={() => setSplit(DEFAULT_SPLIT)}
+            onKeyDown={onDividerKeyDown}
+          />
           <div className={styles.dualEditor}>
             <AutoGrowTextarea
               value={markdown}
