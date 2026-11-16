@@ -18,6 +18,21 @@ import Sidebar from '@/components/Sidebar/Sidebar'
 import Viewer from '@/components/Viewer/Viewer'
 import SaveArea from '@/components/SaveArea'
 import styles from './page.module.css'
+
+/** The options panel's width in the two-panel layout, in pixels. */
+const SIDE_DEFAULT = 360
+const SIDE_MIN = 280
+const SIDE_MAX = 760
+/** The preview is never squeezed below this, so the ceiling moves with the window. */
+const VIEWER_MIN = 360
+const SIDE_KEY = 'readme-sidebar-w'
+
+function clampSide(px: number, containerWidth?: number): number {
+  const ceiling = containerWidth && containerWidth > 0
+    ? Math.min(SIDE_MAX, containerWidth - VIEWER_MIN)
+    : SIDE_MAX
+  return Math.round(Math.min(Math.max(px, SIDE_MIN), Math.max(SIDE_MIN, ceiling)))
+}
 export default function Home() {
   return (
     <Suspense>
@@ -413,6 +428,82 @@ function App() {
       : { message: `README generated (${mode} mode)`, state: 'done' })
     setGenerating(false)
   }
+  // The options panel's width. The grid column is what sets it, so one number
+  // drives the layout from here and the Sidebar needs to know nothing about it.
+  const [sideWidth, setSideWidth] = useState(SIDE_DEFAULT)
+  const [draggingSide, setDraggingSide] = useState(false)
+  const layoutRef = useRef<HTMLDivElement>(null)
+
+  // Read on mount, not in the initial state: this is server rendered first and
+  // there is no localStorage there.
+  useEffect(() => {
+    try {
+      const saved = Number(window.localStorage.getItem(SIDE_KEY))
+      if (Number.isFinite(saved) && saved > 0) setSideWidth(clampSide(saved))
+    } catch {
+      /* storage blocked or unavailable — the default is fine */
+    }
+  }, [])
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SIDE_KEY, String(sideWidth))
+    } catch {
+      /* as above */
+    }
+  }, [sideWidth])
+
+  useEffect(() => {
+    if (!draggingSide) return
+
+    function onMove(e: PointerEvent) {
+      const box = layoutRef.current?.getBoundingClientRect()
+      if (!box || !box.width) return
+      setSideWidth(clampSide(e.clientX - box.left, box.width))
+    }
+    function stop() {
+      setDraggingSide(false)
+    }
+
+    document.addEventListener('pointermove', onMove)
+    document.addEventListener('pointerup', stop)
+    document.addEventListener('pointercancel', stop)
+    // Without these the cursor flickers over the panels and the drag selects
+    // whatever text it passes across.
+    const { cursor, userSelect } = document.body.style
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+
+    return () => {
+      document.removeEventListener('pointermove', onMove)
+      document.removeEventListener('pointerup', stop)
+      document.removeEventListener('pointercancel', stop)
+      document.body.style.cursor = cursor
+      document.body.style.userSelect = userSelect
+    }
+  }, [draggingSide])
+
+  // A window dragged narrower must not leave the preview a sliver.
+  useEffect(() => {
+    function onResize() {
+      const box = layoutRef.current?.getBoundingClientRect()
+      if (box?.width) setSideWidth((w) => clampSide(w, box.width))
+    }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  function onSideKeyDown(e: React.KeyboardEvent) {
+    const step = e.shiftKey ? 40 : 10
+    const width = layoutRef.current?.getBoundingClientRect().width
+    if (e.key === 'ArrowLeft') setSideWidth((w) => clampSide(w - step, width))
+    else if (e.key === 'ArrowRight') setSideWidth((w) => clampSide(w + step, width))
+    else if (e.key === 'Home') setSideWidth(SIDE_MIN)
+    else if (e.key === 'End') setSideWidth(clampSide(SIDE_MAX, width))
+    else return
+    e.preventDefault()
+  }
+
   function handleCopy() { navigator.clipboard.writeText(markdown) }
   function handleDownload(ext: 'md' | 'txt') {
     const mimeType = ext === 'md' ? 'text/markdown' : 'text/plain'
@@ -458,7 +549,13 @@ function App() {
           onReset={handleDemoReset}
         />
       )}
-      <div className={`${styles.layout} ${markdown ? '' : styles.layoutSetup}`}>
+      {/* The inline template applies only with both panels up: layoutSetup makes
+          the options panel the whole page, and an inline style would win over it. */}
+      <div
+        className={`${styles.layout} ${markdown ? styles.layoutSplit : styles.layoutSetup}`}
+        ref={layoutRef}
+        style={markdown ? { gridTemplateColumns: `${sideWidth}px 9px minmax(0, 1fr)` } : undefined}
+      >
         <Sidebar
           token={token}
           onTokenChange={setToken}
@@ -497,6 +594,25 @@ function App() {
           onNeedVariables={loadVariables}
           wide={!markdown}
         />
+        {markdown && (
+          <div
+            className={`${styles.sideResizer} ${draggingSide ? styles.sideResizerActive : ''}`}
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize the options panel"
+            aria-valuenow={sideWidth}
+            aria-valuemin={SIDE_MIN}
+            aria-valuemax={SIDE_MAX}
+            tabIndex={0}
+            title="Drag to resize — double-click to reset"
+            onPointerDown={(e) => {
+              e.preventDefault()
+              setDraggingSide(true)
+            }}
+            onDoubleClick={() => setSideWidth(SIDE_DEFAULT)}
+            onKeyDown={onSideKeyDown}
+          />
+        )}
         {markdown && (
           <Viewer
             markdown={markdown}

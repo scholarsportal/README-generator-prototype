@@ -12,6 +12,27 @@ import SectionTable from './SectionTable'
 import type { TreeNode } from '@/lib/types'
 import styles from './Sidebar.module.css'
 
+/**
+ * What each section's info tooltip says, keyed by the label it sits beside.
+ * Rewording one is a single line here; nothing else needs touching.
+ */
+/** Roughly how tall a tooltip gets, for deciding which way it should open. */
+const TOOLTIP_ROOM = 140
+
+const SECTION_INFO: Record<string, string> = {
+  'Files to include':
+    'This applies to the File List and Variable List / Data Dictionary sections. ' +
+    'Select C1 if you want the file listed in the file listing, and C2 if you want ' +
+    'the data file included in the variable list / data dictionary. Restricted files ' +
+    'are unselected by default but can be selected, use your own discretion.',
+  'Generation mode':
+    'Selecting Advanced lets you configure the specific sections you want. ' +
+    'Select Minimum if you want the standard sections.',
+  'Custom sections':
+    'Lets you add sections to the README that are not listed above. Fill in your own ' +
+    'title and content.',
+}
+
 interface SidebarProps {
   token: string
   onTokenChange: (t: string) => void
@@ -283,7 +304,7 @@ export default function Sidebar({
           </div>
         </div>
       )}
-      <div className={`${styles.scroll} ${wide ? styles.scrollWide : ''}`}>
+      <div className={`${styles.scroll} ${wide ? styles.scrollWide : ''}`} data-sidebar-scroll>
 
         {fetching && (
           <div className={styles.fetchingState}>
@@ -341,7 +362,10 @@ export default function Sidebar({
 
         {tree && (
           <div>
-            <label className={styles.label}>Files to include</label>
+            <div className={styles.labelRow}>
+              <label className={styles.label}>Files to include</label>
+              <SectionInfo label="Files to include" />
+            </div>
 
             {/* Legend box */}
             <div className={styles.fileListLegend}>
@@ -414,7 +438,10 @@ export default function Sidebar({
 
         {meta && (
           <div>
-            <label className={styles.label}>Generation mode</label>
+            <div className={styles.labelRow}>
+              <label className={styles.label}>Generation mode</label>
+              <SectionInfo label="Generation mode" />
+            </div>
             <div className={styles.modeToggle}>
               <button
                 className={`${styles.modeBtn} ${mode === 'basic' ? styles.modeBtnActive : ''}`}
@@ -492,6 +519,7 @@ export default function Sidebar({
             <div className={styles.tierLabel} style={{ marginBottom: 8 }}>
               <span className={styles.tierDot} style={{ background: 'var(--border-mid)' }} />
               Custom sections
+              <SectionInfo label="Custom sections" />
             </div>
             {customSections.map((cs) => (
               <div key={cs.id} className={styles.customCard}>
@@ -792,6 +820,58 @@ function UnlockIcon() {
       <rect x="2" y="5" width="8" height="6" rx="1.5" fill="currentColor" fillOpacity="0.22" stroke="currentColor" strokeWidth="1.2"/>
       <path d="M4 5V3.5a2 2 0 0 1 4 0" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
     </svg>
+  )
+}
+
+// ── Section info tooltip ──────────────────────────────────────────────────────
+// The same control as the one beside the app name in the header, down to the
+// icon: the round outline is the SVG's own circle rather than a CSS border.
+
+function SectionInfo({ label }: { label: string }) {
+  const [visible, setVisible] = useState(false)
+  const [above, setAbove] = useState(false)
+  const text = SECTION_INFO[label] || ''
+  if (!text) return null
+
+  // The panel scrolls, and overflow clips an absolutely positioned tooltip, so
+  // a trigger low in the panel opens upwards. Measured once, on the way in.
+  function place(e: React.MouseEvent | React.FocusEvent) {
+    const btn = e.currentTarget as HTMLElement
+    const panel = btn.closest('[data-sidebar-scroll]')
+    if (panel) {
+      const b = btn.getBoundingClientRect()
+      const p = panel.getBoundingClientRect()
+      setAbove(b.bottom + TOOLTIP_ROOM > p.bottom)
+    }
+    setVisible(true)
+  }
+
+  return (
+    <span className={styles.infoWrap}>
+      <button
+        type="button"
+        className={styles.infoBtn}
+        onMouseEnter={place}
+        onMouseLeave={() => setVisible(false)}
+        onFocus={place}
+        onBlur={() => setVisible(false)}
+        aria-label={`About ${label}`}
+      >
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.2"/>
+          <path d="M7 6.5V10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+          <circle cx="7" cy="4.5" r="0.7" fill="currentColor"/>
+        </svg>
+      </button>
+      {visible && (
+        <span
+          className={`${styles.infoTip} ${above ? styles.infoTipAbove : ''}`}
+          role="tooltip"
+        >
+          {text}
+        </span>
+      )}
+    </span>
   )
 }
 

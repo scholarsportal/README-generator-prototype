@@ -1003,3 +1003,85 @@
   flex: 0 0 auto;
   white-space: nowrap;
 }
+
+/* ── section info tooltips ────────────────────────────────────────────────────
+   Appended by the section-info patch. Copied from Header.module.css so these
+   read identically to the one beside the app name — CSS modules are per file,
+   so the rules have to be duplicated rather than shared.
+
+   Note what .infoBtn does not do: no width, no height, no border. The circle is
+   the icon's own drawn circle, which is why the header's version looks round. */
+
+.labelRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  /* .label carries the gap below itself; the row must not add a second one. */
+  margin-bottom: 4px;
+}
+
+.labelRow .label {
+  margin-bottom: 0;
+}
+
+/* The tooltip hangs off the row, not off the icon. The icon sits after a label,
+   so anchoring there would start the tooltip a hundred-odd pixels in and run it
+   off the right edge of a narrow panel. From the row it starts at the panel's
+   text edge and max-width keeps it inside however narrow the panel is dragged.
+   Custom sections uses .tierLabel as its row, so that needs to position too. */
+.tierLabel {
+  position: relative;
+}
+
+.infoWrap {
+  display: inline-flex;
+  align-items: center;
+}
+
+.infoBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--hint);
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  border-radius: 50%;
+  transition: color 0.15s;
+}
+
+.infoBtn:hover,
+.infoBtn:focus-visible {
+  color: var(--muted);
+  outline: none;
+}
+
+.infoTip {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 240px;
+  max-width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.5;
+  z-index: 20;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  /* The label rows are uppercase and letter-spaced; the tooltip is prose. */
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* The options panel scrolls, so a tooltip opening downwards from a trigger near
+   the bottom sits outside the visible area and has to be scrolled to. Opening
+   upwards instead keeps it in view, since a trigger low in the panel has room
+   above it. */
+.infoTipAbove {
+  top: auto;
+  bottom: calc(100% + 8px);
+}

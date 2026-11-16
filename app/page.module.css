@@ -55,3 +55,46 @@
   color: var(--muted);
   max-width: 420px;
 }
+
+/* ── options panel resizer ────────────────────────────────────────────────────
+   Appended by the sidebar-resize patch.
+
+   .layout's grid-template-columns is set inline from state while both panels
+   are on screen, so all that is needed here is the bar between them and two
+   corrections to the panels either side of it. */
+
+.sideResizer {
+  box-sizing: border-box;
+  width: 9px;
+  padding: 0;
+  background: var(--border);
+  background-clip: content-box;
+  border-top: none;
+  border-bottom: none;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  cursor: col-resize;
+  /* Stops a touch drag scrolling the page instead of moving the divider. */
+  touch-action: none;
+}
+
+.sideResizer:hover,
+.sideResizer:focus-visible,
+.sideResizerActive {
+  background: var(--accent);
+  background-clip: content-box;
+  outline: none;
+}
+
+/* Grid items refuse to shrink below their content unless told to, which would
+   let a long file name or a wide table push the column past the width the
+   divider was dragged to. */
+.layoutSplit > * {
+  min-width: 0;
+}
+
+/* The bar carries the dividing line now, so the panel's own right border would
+   show as a second one a few pixels to its left. */
+.layoutSplit > :first-child {
+  border-right: none;
+}
