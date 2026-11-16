@@ -1,0 +1,24 @@
+{
+  "displayName": "Generate README",
+  "description": "Generate a README.md file for this dataset using Borealis README.gen",
+  "toolName": "borealis-readme-gen",
+  "scope": "dataset",
+  "types": [
+    "configure"
+  ],
+  "toolUrl": "https://borealis-readme-gen.vercel.app",
+  "httpMethod": "GET",
+  "toolParameters": {
+    "queryParameters": [
+      {
+        "datasetPid": "{datasetPid}"
+      },
+      {
+        "siteUrl": "{siteUrl}"
+      },
+      {
+        "locale": "{localeCode}"
+      }
+    ]
+  }
+}
